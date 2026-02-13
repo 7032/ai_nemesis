@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+
+:root {
+    --bg-color: #050510;
+    --text-color: #e0e0e0;
+    --primary-color: #00f3ff;
+    --secondary-color: #bc13fe;
+    --surface-color: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(0, 243, 255, 0.3);
+    --glow-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(188, 19, 254, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 243, 255, 0.1) 0%, transparent 40%);
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 2rem;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    text-align: center;
+    margin-bottom: 3rem;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--primary-color);
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+    position: relative;
+}
+
+h1::after {
+    content: 'AI NEMESIS';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    mix-blend-mode: overlay;
+    color: var(--primary-color);
+    opacity: 0.5;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+thead th {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--primary-color);
+    text-align: left;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--border-color);
+    text-shadow: 0 0 5px var(--primary-color);
+}
+
+tbody tr {
+    background: var(--surface-color);
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+tbody tr:hover {
+    transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: var(--glow-shadow);
+    border: 1px solid var(--border-color);
+}
+
+tbody td {
+    padding: 1.2rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+tbody tr td:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+tbody tr td:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+a {
+    color: var(--text-color);
+    text-decoration: none;
+    position: relative;
+    transition: color 0.3s ease;
+    display: inline-block;
+}
+
+a::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -4px;
+    left: 0;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 5px var(--primary-color);
+}
+
+a:hover {
+    color: var(--primary-color);
+    text-shadow: 0 0 8px var(--primary-color);
+}
+
+a:hover::before {
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    td, th {
+        padding: 1rem;
+    }
+}
