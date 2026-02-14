@@ -268,7 +268,7 @@ export class World {
 
       // Last boss!
       this.player.addScore(100000);
-      this.startEndingSequence();
+      this.startEndingSequence(b);
       return;
     }
 
@@ -311,18 +311,20 @@ export class World {
     for (let i = 0; i < 120; i++) {
       // ランダムな遅延で爆発させる
       setTimeout(() => {
-        this.spawnExplosion(
-          b.x + rand(-60, 60),
-          b.y + rand(-60, 60),
-          rand(0.5, 1.2), // scale
-          i % 3 === 0     // big?
-        );
-      }, rand(0, 1500)); // 1.5秒かけて爆発し続ける
+        if (this.startEnding) { // Safety check
+          this.spawnExplosion(
+            bx + rand(-60, 60),
+            by + rand(-60, 60),
+            rand(0.5, 1.2), // scale
+            i % 3 === 0     // big?
+          );
+        }
+      }, rand(0, 4200)); // 4.2秒かけて爆発し続ける
 
       this.particles.push(
         new Particle(
-          b.x + rand(-60, 60),
-          b.y + rand(-60, 60),
+          bx + rand(-60, 60),
+          by + rand(-60, 60),
           rand(-300, 300),
           rand(-300, 300),
           rand(0.4, 0.95),
@@ -333,15 +335,18 @@ export class World {
 
     setTimeout(() => this.showBanner("STAGE CLEAR", 1.9), 1000);
   }
-  startEndingSequence() {
+  startEndingSequence(boss) {
     // Stop scrolling/enemies?
     this.enemies = [];
     this.bullets = []; // Clear bullets
 
     this.audio.playBGM("ending");
 
-    // 10秒間爆発演出
-    let dur = 10.0;
+    const bx = boss ? boss.x : CONFIG.W / 2;
+    const by = boss ? boss.y : CONFIG.H / 2;
+
+    // 4.5秒間爆発演出
+    let dur = 4.5;
     const perform = () => {
       // Create loop effect
       if (dur <= 0) {
