@@ -316,8 +316,43 @@ export class World {
 
     setTimeout(() => this.showBanner("STAGE CLEAR", 1.9), 1000);
   }
+  startEndingSequence() {
+    // Stop scrolling/enemies?
+    this.enemies = [];
+    this.bullets = []; // Clear bullets
 
-  // -----------------------------
+    this.audio.playBGM("ending");
+
+    // 10秒間爆発演出
+    let dur = 10.0;
+    const perform = () => {
+      // Create loop effect
+      if (dur <= 0) {
+        this.showBanner("THE END", 9999);
+        return;
+      }
+      dur -= 0.15;
+
+      // Random explosions around screen
+      if (Math.random() < 0.4) {
+        this.spawnExplosion(
+          rand(0, CONFIG.W), // Screen coords relative to cam?
+          // Actually spawnExplosion uses World check. 
+          // Explosion uses World coords.
+          // Player/Cam doesn't scroll much?
+          // Let's assume absolute coords are fine if camera isn't moving fast.
+          rand(20, CONFIG.W - 20),
+          rand(20, CONFIG.H - 20),
+          rand(0.5, 1.5)
+        );
+        this.audio.noiseBurst(0.2, 0.4);
+        this.camera.shake(5, 0.2);
+      }
+
+      setTimeout(perform, 150);
+    };
+    perform();
+  }
   // Stage advance
   // -----------------------------
   advanceStage() {
