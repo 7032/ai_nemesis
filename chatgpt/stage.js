@@ -434,26 +434,49 @@ export class StageTimeline {
     // STAGE 7 — SINGULARITY GATE
     // =====================================================
     else if (stageIndex === 7) {
-      spawnAirWave(2.0, 5, 150, 430, -120);
-      spawnCapsule(4.0, 260, 260);
+      const duration = 20.0;
+      const pattern = (tBase) => {
+        // Air waves & Formations
+        spawnAirWave(tBase + 1.0, 6, 100, 400);
+        spawnComplexFormation(tBase + 2.0, 8, "return", 150);
 
-      spawnGround(6.0, [
-        { x: 160, onCeil: false },
-        { x: 320, onCeil: true },
-      ]);
+        // Ground Assault (Volcano + Tentacle)
+        spawnVolcano(tBase + 3.0, false);
+        spawnVolcano(tBase + 3.5, true);
 
-      spawnAirWave(8.5, 6, 120, 450, -135);
-      spawnCapsule(11.0, 300, 280);
+        spawnTentacle(tBase + 5.0, 120, false, 12);
+        spawnTentacle(tBase + 6.0, 200, true, 12);
 
-      spawnGround(13.5, [
-        { x: 180, onCeil: false },
-        { x: 360, onCeil: false },
-      ]);
+        // High density wave
+        spawnComplexFormation(tBase + 7.5, 10, "wave", 300);
 
-      spawnAirWave(16.5, 7, 110, 460, -140);
+        // Moai from Stage 3
+        spawnMoai(tBase + 9.0, [{ x: 100, onCeil: false }, { x: 250, onCeil: true }]);
 
-      bossApproach(20.0, "SINGULARITY CORE");
-      spawnBoss(24.0);
+        spawnCapsule(tBase + 10.0, 250, 250);
+
+        // Combined Assault
+        spawnVolcano(tBase + 11.5, false);
+        spawnTentacle(tBase + 12.0, 100, true, 14);
+        spawnAirWave(tBase + 13.0, 8, 50, 450, -130);
+
+        spawnComplexFormation(tBase + 15.0, 12, "return", 250);
+        spawnMoai(tBase + 17.0, [{ x: 150, onCeil: false }]);
+      };
+
+      // Loop 3 times
+      for (let i = 0; i < 3; i++) pattern(i * duration);
+
+      const fin = duration * 3;
+
+      bossApproach(fin + 2.0, "SINGULARITY CORE");
+      // Triple Boss
+      offsetSpawn(fin + 6.0, () => {
+        w.enemies.push(new Boss(CONFIG.W + 150, 100, 7));
+        w.enemies.push(new Boss(CONFIG.W + 150, 270, 7));
+        w.enemies.push(new Boss(CONFIG.W + 150, 440, 7));
+        // Note: Boss constructor has homeY logic now
+      });
     }
 
     this.events.sort((a, b) => a.time - b.time);
