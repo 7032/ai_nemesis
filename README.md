@@ -18,6 +18,17 @@ AI（大規模言語モデル）によって生成されたシューティング
 ### 3. STARLINE VECTOR
 *   **Creator:** OpenAI ChatGPT
 *   **Description:** ベクターグラフィックスとプロシージャルサウンドが特徴のスタイリッシュなSTG。
+    *   **Features:**
+        *   全7ステージ構成（最終ステージ「Singularity Gate」実装済）
+        *   6種類のパワーアップ（Speed, Missile, Double, Laser, Option, Shield）
+        *   **Stage 6**: Core Rail AIによるボスラッシュ（3連戦）
+        *   **Stage 7**: 3体のラスボスが織りなす多重攻撃と、感動のエンディング
+    *   **Controls:**
+        *   **Move:** Arrow Keys / WASD
+        *   **Shot:** Z / Space
+        *   **Missile:** X
+        *   **Dual Fire:** V (Shot + Missile)
+        *   **Power-up:** C / Enter
 *   **Play:** [chatgpt-nemesis.html](chatgpt-nemesis.html)
 
 ## 技術スタック (Tech Stack)
