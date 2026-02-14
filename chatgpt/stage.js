@@ -381,16 +381,16 @@ export class StageTimeline {
       const pattern = (tBase) => {
         spawnAirWave(tBase + 1.5, 3, 180, 380, -100);
         spawnCapsule(tBase + 3.5, 220, 240);
-        spawnTentacle(tBase + 4.0, 100, true, 5);
-        spawnTentacle(tBase + 6.0, 200, false, 6);
-        spawnTentacle(tBase + 8.0, 150, true, 7);
+        spawnTentacle(tBase + 4.0, 100, true, 12);
+        spawnTentacle(tBase + 6.0, 200, false, 12);
+        spawnTentacle(tBase + 8.0, 150, true, 14);
         spawnFormationOffset(tBase + 10.0, 6, 240, true);
-        spawnTentacle(tBase + 12.0, 100, false, 6);
-        spawnTentacle(tBase + 14.0, 180, true, 8);
+        spawnTentacle(tBase + 12.0, 100, false, 12);
+        spawnTentacle(tBase + 14.0, 180, true, 16);
         spawnAirWave(tBase + 16.0, 4, 160, 420, -110);
         spawnCapsule(tBase + 17.0, 260, 280);
-        spawnTentacle(tBase + 18.5, 120, false, 7);
-        spawnTentacle(tBase + 20.0, 220, true, 7);
+        spawnTentacle(tBase + 18.5, 120, false, 14);
+        spawnTentacle(tBase + 20.0, 220, true, 14);
       };
 
       for (let i = 0; i < 3; i++) pattern(i * duration);

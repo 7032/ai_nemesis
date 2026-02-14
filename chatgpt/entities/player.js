@@ -261,11 +261,17 @@ export class Player extends Entity {
     if (pu.missile && misHeld) {
       this.missileT -= dt;
       if (this.missileT <= 0) {
-        this.missileT += 1 / CONFIG.MISSILE.rate;
-        // 常に下向きに発射
-        const dir = 1;
-        w.spawnMissile(this.x + 10, this.y + 10 * dir, dir, CONFIG.MISSILE.dmg * dmgMul);
-        w.audio.beep("square", 280, 0.03, 0.04);
+        // Limit: 4 + 4 per option
+        const myMissiles = w.bullets.filter(b => b.owner === "player" && b.tag === "missile").length;
+        const limit = 4 * (1 + pu.optionCount);
+
+        if (myMissiles < limit) {
+          this.missileT += 1 / CONFIG.MISSILE.rate;
+          // 常に下向きに発射
+          const dir = 1;
+          w.spawnMissile(this.x + 10, this.y + 10 * dir, dir, CONFIG.MISSILE.dmg * dmgMul);
+          w.audio.beep("square", 280, 0.03, 0.04);
+        }
       }
     } else this.missileT = 0;
 
