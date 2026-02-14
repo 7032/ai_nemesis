@@ -28,6 +28,17 @@ export class Tentacle extends Entity {
     }
   }
 
+  checkHit(bx, by, br) {
+    for (let i = 0; i < this.segments.length; i++) {
+      const seg = this.segments[i];
+      if (seg.dead) continue;
+      const dist = Math.hypot(seg.x - bx, seg.y - by);
+      // Hit if overlaps
+      if (dist < seg.r + br) return true;
+    }
+    return false;
+  }
+
   takeDamage(dmg, w, hitX, hitY) {
     // Find closest segment to hit
     let bestDist = 999;

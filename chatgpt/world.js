@@ -469,14 +469,23 @@ export class World {
         if (e.dead) continue;
         if (e instanceof RingBullet) continue;
 
-        const er = e.r || 18;
-        const dx = e.x - b.x,
-          dy = e.y - b.y;
-        if (dx * dx + dy * dy <= (er + b.r) * (er + b.r)) {
+        let hit = false;
+        // Custom collision check?
+        if (typeof e.checkHit === "function") {
+          hit = e.checkHit(b.x, b.y, b.r);
+        } else {
+          // Standard circle
+          const er = e.r || 18;
+          const dx = e.x - b.x,
+            dy = e.y - b.y;
+          hit = dx * dx + dy * dy <= (er + b.r) * (er + b.r);
+        }
+
+        if (hit) {
           b.dead = true;
 
           if (e instanceof Boss) e.takeDamage(b.dmg, this, b.x, b.y);
-          else e.takeDamage?.(b.dmg, this);
+          else e.takeDamage?.(b.dmg, this, b.x, b.y);
 
           break;
         }
