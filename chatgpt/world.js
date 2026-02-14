@@ -313,8 +313,8 @@ export class World {
       setTimeout(() => {
         if (this.startEnding) { // Safety check
           this.spawnExplosion(
-            bx + rand(-60, 60),
-            by + rand(-60, 60),
+            b.x + rand(-60, 60),
+            b.y + rand(-60, 60),
             rand(0.5, 1.2), // scale
             i % 3 === 0     // big?
           );
