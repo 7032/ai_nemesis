@@ -22,7 +22,7 @@ export class Volcano extends Entity {
 
   takeDamage(dmg, w) {
     this.hp -= dmg;
-    w.audio.beep("nose", 100, 0.05, 0.05);
+    w.audio.beep("triangle", 100, 0.05, 0.05);
     if (this.hp <= 0) {
       this.dead = true;
       w.spawnExplosion(this.x, this.y, 0.8);
