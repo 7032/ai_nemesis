@@ -272,6 +272,23 @@ export class World {
       return;
     }
 
+    // stage6 logic: Boss Rush (3 times)
+    if (this.stageIndex === 6) {
+      this.stage6BossCount++;
+      if (this.stage6BossCount < 3) {
+        this.player.addScore(50000);
+        this.spawnExplosion(b.x, b.y, 1.0);
+        this.audio.beep("square", 880, 0.1, 0.2);
+
+        setTimeout(() => {
+          const nextBoss = new Boss(CONFIG.W + 100, CONFIG.H / 2, 6);
+          this.enemies.push(nextBoss);
+          this.showBanner(`WARNING: CORE REVIVED`, 1.5);
+        }, 1500);
+        return;
+      }
+    }
+
     // それ以外は従来の STAGE CLEAR
     this.player.addScore(45000);
     this.audio.duckBGM(0.45, 0.35);
@@ -753,21 +770,44 @@ export class World {
     g.fillText(`x${p.mult}`, 14, 66);
 
     // boss bar
-    const boss = this.enemies.find((e) => e instanceof Boss);
-    if (boss) {
-      const ratio = clamp(boss.hp / (boss._maxHp || 1), 0, 1);
-      const bx = CONFIG.W / 2 - 180;
-      const by = 18;
-      g.globalAlpha = 0.85;
-      g.fillStyle = "rgba(255,255,255,0.10)";
-      g.beginPath();
-      g.roundRect(bx, by, 360, 10, 6);
-      g.fill();
+    // boss bar
+    const bosses = this.enemies.filter((e) => e instanceof Boss);
+    if (bosses.length > 0) {
+      if (this.stageIndex === 7) {
+        // Show up to 3 bars for Stage 7
+        bosses.forEach((boss, i) => {
+          const ratio = clamp(boss.hp / (boss._maxHp || 1), 0, 1);
+          const bx = CONFIG.W / 2 - 180;
+          const by = 18 + i * 14; // Stack
 
-      g.fillStyle = "rgba(185,150,255,0.75)";
-      g.beginPath();
-      g.roundRect(bx, by, 360 * ratio, 10, 6);
-      g.fill();
+          g.globalAlpha = 0.85;
+          g.fillStyle = "rgba(255,255,255,0.10)";
+          g.beginPath();
+          g.roundRect(bx, by, 360, 8, 4);
+          g.fill();
+
+          g.fillStyle = `hsl(${270 + i * 30}, 100%, 75%)`; // Different colors?
+          g.beginPath();
+          g.roundRect(bx, by, 360 * ratio, 8, 4);
+          g.fill();
+        });
+      } else {
+        // Standard single bar
+        const boss = bosses[0];
+        const ratio = clamp(boss.hp / (boss._maxHp || 1), 0, 1);
+        const bx = CONFIG.W / 2 - 180;
+        const by = 18;
+        g.globalAlpha = 0.85;
+        g.fillStyle = "rgba(255,255,255,0.10)";
+        g.beginPath();
+        g.roundRect(bx, by, 360, 10, 6);
+        g.fill();
+
+        g.fillStyle = "rgba(185,150,255,0.75)";
+        g.beginPath();
+        g.roundRect(bx, by, 360 * ratio, 10, 6);
+        g.fill();
+      }
     }
 
     // power gauge

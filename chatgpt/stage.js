@@ -416,18 +416,9 @@ export class StageTimeline {
         { x: 380, onCeil: false },
       ]);
 
-      spawnAirWave(9.0, 6, 130, 440, -125);
-      spawnCapsule(12.0, 300, 240);
-
-      spawnGround(13.5, [
-        { x: 200, onCeil: false },
-        { x: 340, onCeil: true },
-      ]);
-
-      spawnAirWave(16.5, 6, 120, 450, -130);
-
-      bossApproach(20.0, "CORE RAIL AI");
-      spawnBoss(24.0);
+      // Half length, so jump straight to boss
+      bossApproach(9.0, "CORE RAIL AI");
+      spawnBoss(12.5);
     }
 
     // =====================================================
