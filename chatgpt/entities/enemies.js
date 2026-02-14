@@ -299,6 +299,7 @@ export class Boss extends Entity {
     this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
     this.score = 22000;
+    this.fireTimer = 2.0; // Initialize for Stage 7 logic
 
     this.phase = 0;
     this.hitFlashT = 0;
