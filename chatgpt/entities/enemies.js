@@ -445,8 +445,49 @@ export class Boss extends Entity {
 
     // Stage 7 special movement (Vertical Sine)
     if (w.stageIndex === 7) {
-      this.movePhase += dt * 1.5;
-      this.y = this.homeY + Math.sin(this.movePhase) * 50;
+      // 1. Movement: Full screen sine wave (Center 270, Amp 230)
+      this.y = 270 + Math.sin(w.time * 0.6 + this.movePhase) * 230;
+
+      // 2. Attack logic based on survival count
+      this.fireTimer -= dt;
+      if (this.fireTimer <= 0) {
+        const bosses = w.enemies.filter(e => e.isBoss && !e.dead);
+        const count = bosses.length;
+
+        // Default constraints (3 survivors)
+        let shotCount = 5;
+        let interval = 2.0;
+        let speed = 180;
+
+        if (count === 2) {
+          shotCount = 10;
+          interval = 1.6;
+        } else if (count <= 1) {
+          shotCount = 20;
+          interval = 0.8; // Burst mode
+          speed = 220;
+        }
+
+        this.fireTimer = interval;
+
+        // Fire Ring Bullets
+        w.audio.beep("triangle", 600, 0.05, 0.1);
+        for (let i = 0; i < shotCount; i++) {
+          const angle = (i / shotCount) * Math.PI * 2 + w.time;
+          w.spawnRingBullet(this.x - 20, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+        }
+      }
+
+      // Hit flash update
+      if (this.hitFlashT > 0) this.hitFlashT -= dt;
+
+      // Entry logic
+      this.x += this.vx * dt;
+      if (this.state === "enter" && this.x < CONFIG.W - 150) {
+        this.vx = 0;
+        this.state = "fight";
+      }
+      return;
     }
 
     const ceil = w.terrain.ceilingAt(this.x);

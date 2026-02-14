@@ -57,7 +57,7 @@ export class Tentacle extends Entity {
     if (bestIdx !== -1) {
       const seg = this.segments[bestIdx];
       seg.hp -= dmg;
-      w.audio.beep("nose", 400 + bestIdx * 50, 0.05, 0.05);
+      w.audio.beep("sawtooth", 400 + bestIdx * 50, 0.05, 0.05);
 
       if (seg.hp <= 0) {
         seg.dead = true;
@@ -139,7 +139,7 @@ export class Tentacle extends Entity {
     if (tip) {
       this.fireTimer -= dt;
       if (this.fireTimer <= 0) {
-        this.fireTimer = 1.2; // Faster fire (was 2.5)
+        this.fireTimer = 0.3; // Rapid fire
         if (p) {
           const dx = p.x - tip.x;
           const dy = p.y - tip.y;
