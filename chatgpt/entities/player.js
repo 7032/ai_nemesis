@@ -248,7 +248,7 @@ export class Player extends Entity {
           this.shotT += 1 / rate;
           if (pu.double) {
             w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
-            const a = -Math.PI / 6;
+            const a = -Math.PI / 4;
             w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
           } else {
             w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
@@ -287,7 +287,7 @@ export class Player extends Entity {
             w.spawnBullet(op.x + 14, op.y, 720, 0, 2.5, 0.55 * dmgMul, true, "needle");
           } else if (pu.double) {
             w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
-            const a = -Math.PI / 6;
+            const a = -Math.PI / 4;
             w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
           } else {
             w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
