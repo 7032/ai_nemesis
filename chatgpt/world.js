@@ -323,8 +323,8 @@ export class World {
 
       this.particles.push(
         new Particle(
-          bx + rand(-60, 60),
-          by + rand(-60, 60),
+          b.x + rand(-60, 60),
+          b.y + rand(-60, 60),
           rand(-300, 300),
           rand(-300, 300),
           rand(0.4, 0.95),
