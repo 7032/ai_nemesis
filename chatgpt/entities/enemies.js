@@ -93,24 +93,31 @@ export class AirEnemy extends Entity {
 
       const p = w.player;
       if (p && p.canBeHit()) {
-        const dx = p.x - this.x;
-        const dy = p.y - this.y;
-        const len = Math.hypot(dx, dy) || 1;
+        const isDynamic = (this.formationId || this.behavior === 'return' || this.pattern === 1);
 
-        const spBase = CONFIG.ENEMY.bulletSpeed * (w.stageIndex === 2 ? 0.92 : 1.0);
-        const sp = spBase * bulletMul(w);
+        if (isDynamic) {
+          // 動きが激しい: 近い時や通り過ぎる時に撃つ
+          const dx = p.x - this.x;
+          const dy = p.y - this.y;
+          if (Math.abs(dx) < 250) { // Near or passing
+            const len = Math.hypot(dx, dy) || 1;
+            const sp = CONFIG.ENEMY.bulletSpeed * 1.2; // Faster
+            w.spawnBullet(this.x - 10, this.y, (dx / len) * sp, (dy / len) * sp, 4, 1, false, "needle");
+            w.audio.beep("triangle", 240, 0.05, 0.04);
+          }
+        } else {
+          // 動きが小さい: 多めに吐く (3-way)
+          const dx = p.x - this.x;
+          const dy = p.y - this.y;
+          const baseAng = Math.atan2(dy, dx);
+          const sp = CONFIG.ENEMY.bulletSpeed * 0.9;
 
-        w.spawnBullet(
-          this.x - 10,
-          this.y,
-          (dx / len) * sp,
-          (dy / len) * sp,
-          4,
-          1,
-          false,
-          "needle"
-        );
-        w.audio.beep("triangle", 235, 0.05, 0.042);
+          for (let i = -1; i <= 1; i++) {
+            const a = baseAng + i * 0.25;
+            w.spawnBullet(this.x - 10, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "needle");
+          }
+          w.audio.beep("triangle", 220, 0.05, 0.05);
+        }
       }
     }
   }

@@ -3,7 +3,7 @@ import { CONFIG } from "../config.js";
 import { rand } from "../utils.js";
 
 export class Tentacle extends Entity {
-  constructor(x, y, isCeil, length = 6) {
+  constructor(x, y, isCeil, length = 12) { // Length doubled default
     super();
     this.x = x;
     this.y = y;
@@ -15,7 +15,7 @@ export class Tentacle extends Entity {
     this.swaySpeed = rand(0.8, 1.4);
     this.swayOffset = rand(0, 10);
 
-    this.fireTimer = rand(2.0, 4.0);
+    this.fireTimer = rand(1.0, 2.5); // Faster fire start
 
     // Create segments
     for (let i = 0; i < length; i++) {
@@ -101,18 +101,33 @@ export class Tentacle extends Entity {
       this.segments[i].y = cy;
     }
 
+    // Collision with player
+    const p = w.player;
+    if (p && p.canBeHit()) {
+      for (let i = 0; i < this.length; i++) {
+        const seg = this.segments[i];
+        if (seg.dead) continue;
+        const dist = Math.hypot(p.x - seg.x, p.y - seg.y);
+        // Simple circle collision
+        if (dist < seg.r + 6) { // 6 is approx player hit radius
+          p.takeHit();
+          break;
+        }
+      }
+    }
+
     // Firing from tip
     const tip = this.segments[this.length - 1];
     if (!tip.dead) {
       this.fireTimer -= dt;
       if (this.fireTimer <= 0) {
-        this.fireTimer = 2.5;
-        const p = w.player;
+        this.fireTimer = 1.2; // Faster fire (was 2.5)
         if (p) {
           const dx = p.x - tip.x;
           const dy = p.y - tip.y;
           const len = Math.hypot(dx, dy);
-          w.spawnBullet(tip.x, tip.y, (dx / len) * 100, (dy / len) * 100, 4, 1, false, "round");
+          // Faster bullet, aim at player
+          w.spawnBullet(tip.x, tip.y, (dx / len) * 140, (dy / len) * 140, 4, 1, false, "round");
         }
       }
     }
