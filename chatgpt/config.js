@@ -14,7 +14,7 @@ export const CONFIG = {
     invulnOnShieldBreak: 0.35,
     respawnIFrames: 1.0,
     idleDeadzone: 0.85,
-    terrainMargin: 18,
+    terrainMargin: 6, // 18->6: 接触で即ミス（hitRadiusY=7なので壁ずり不可）
   },
 
   POWERUP: {
@@ -42,7 +42,7 @@ export const CONFIG = {
   MISSILE: { rate: 6, dmg: 1.35, speed: 420 },
 
   OPTION: {
-    max: 4,
+    max: 6,
     followDelay: 0.14,
     followLerp: 0.14,
   },

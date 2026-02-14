@@ -21,7 +21,13 @@ export class AirEnemy extends Entity {
     this.r = 16;
     this.hp = hp;
     this.score = 200;
+    this.score = 200;
     this._shootT = rand(1.8, 3.4);
+
+    // 行動パターン (0:直進, 1:波打つ, 2:追尾気味)
+    this.pattern = Math.floor(rand(0, 3));
+    this.age = 0;
+    this.baseY = y;
   }
 
   takeDamage(dmg, w) {
@@ -46,6 +52,23 @@ export class AirEnemy extends Entity {
 
   update(dt, w) {
     this.x += this.vx * dt;
+    this.age += dt;
+
+    // 編隊IDがないなら独自の動き
+    if (!this.formationId) {
+      if (this.pattern === 1) {
+        // Sine wave
+        this.y = this.baseY + Math.sin(this.age * 4) * 40;
+      } else if (this.pattern === 2) {
+        // 徐々にプレイヤーの高さに寄る
+        if (w.player) {
+          this.baseY = lerp(this.baseY, w.player.y, dt * 0.5);
+          this.y = this.baseY;
+        }
+      }
+      // pattern 0 is straight (default)
+    }
+
     if (this.x < -140) this.dead = true;
 
     const ceil = w.terrain.ceilingAt(this.x);
@@ -260,8 +283,11 @@ export class Boss extends Entity {
 
     this.r = 74;
 
-    // stage2 slightly softer
-    this.hp = CONFIG.BOSS.hp * (stageIndex === 2 ? 0.92 : 1.0);
+    // stage2 slightly softer, but generally scale up hp
+    let hpMul = (stageIndex === 2 ? 0.92 : 1.0) + (stageIndex - 1) * 0.15;
+    if (stageIndex === 7) hpMul *= 3.0; // Stage 7 Boss tough!
+
+    this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
     this.score = 22000;
 
@@ -292,22 +318,27 @@ export class Boss extends Entity {
     const calm = stageIndex === 2 ? 1.08 : 1.0;
     const densityMul = s * (stageIndex === 2 ? 0.92 : 1.0);
 
+    // ステージが進むほど待機時間が短くなる（難易度アップ）
+    // stage1=1.0, stage2=0.85, stage3=0.7 ... min 0.4
+    const waitMul = Math.max(0.4, 1.0 - (stageIndex - 1) * 0.15);
+
     return [
-      fan(3.6 * calm, 0.78 / densityMul, Math.round(7 * densityMul)),
-      rest(1.0 + CONFIG.BOSS.restPad),
+      fan(3.6 * calm, 0.78 / densityMul, Math.round((7 + stageIndex) * densityMul)),
+      rest((1.0 + CONFIG.BOSS.restPad) * waitMul),
 
-      open(2.4),
-      aim(3.2 * calm, 0.82 / densityMul),
-      close(0.4),
-      rest(1.2 + CONFIG.BOSS.restPad),
+      open(2.4 * waitMul),
+      fan(3.6 * calm, 0.78 / densityMul, Math.round((6 + stageIndex) * densityMul)),
+      close(0.4 * waitMul),
+      rest((1.2 + CONFIG.BOSS.restPad) * waitMul),
 
-      ring(3.8 * calm, 1.05 / densityMul, Math.round(8 * densityMul)),
-      rest(1.2 + CONFIG.BOSS.restPad),
+      ring(3.8 * calm, 1.05 / densityMul, Math.round((8 + stageIndex) * densityMul)),
+      rest((1.2 + CONFIG.BOSS.restPad) * waitMul),
 
-      open(2.6),
-      fan(2.8 * calm, 0.92 / densityMul, Math.round(6 * densityMul)),
-      close(0.4),
-      rest(1.25 + CONFIG.BOSS.restPad),
+      open(2.6 * waitMul),
+      ring(3.8 * calm, 1.05 / densityMul, Math.round((8 + stageIndex) * densityMul)),
+      close(0.5 * waitMul),
+
+      rest((1.5 + CONFIG.BOSS.restPad) * waitMul)
     ];
   }
 

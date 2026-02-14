@@ -262,9 +262,8 @@ export class Player extends Entity {
       this.missileT -= dt;
       if (this.missileT <= 0) {
         this.missileT += 1 / CONFIG.MISSILE.rate;
-        const toFloor = (floor - margin) - this.y;
-        const toCeil = this.y - (ceil + margin);
-        const dir = (toCeil < toFloor) ? -1 : 1;
+        // 常に下向きに発射
+        const dir = 1;
         w.spawnMissile(this.x + 10, this.y + 10 * dir, dir, CONFIG.MISSILE.dmg * dmgMul);
         w.audio.beep("square", 280, 0.03, 0.04);
       }

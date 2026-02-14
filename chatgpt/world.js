@@ -40,6 +40,8 @@ export class World {
 
     this.player = new Player(this);
     this.powerUp = new PowerUpSystem(this);
+    this.formationStats = null; // { total, killed, type }
+    this.killCount = 0; // 雑魚撃破数カウンター
 
     this.optionFireAcc = 0;
     this.banner = null;
@@ -152,7 +154,8 @@ export class World {
   }
 
   spawnMissile(x, y, dir, dmg) {
-    const m = new Bullet(x, y, CONFIG.MISSILE.speed, 0, 4, dmg, true, "missile");
+    // VXを減らし、VYを少し与えて急角度に落下させる
+    const m = new Bullet(x, y, 50 * dir, 60, 4, dmg, true, "missile");
     m.dir = dir;
     m.hug = false;
 
@@ -215,8 +218,26 @@ export class World {
     this.player.multT = 5.0;
     this.player.mult = Math.min(4, this.player.mult + 1);
 
-    const chance = this.dropChanceForEnemy(e);
-    if (Math.random() < chance) this.items.push(new Capsule(e.x, e.y));
+    // 編隊処理
+    if (e.formationId && this.formationStats && this.formationStats.id === e.formationId) {
+      this.formationStats.killed++;
+      if (this.formationStats.killed >= this.formationStats.total) {
+        // 全滅ボーナス：カプセル
+        this.items.push(new Capsule(e.x, e.y));
+        this.audio.beep("square", 1200, 0.1, 0.2); // Special sound
+        // 編隊リセット
+        this.formationStats = null;
+        return; // 編隊敵は通常ドロップ判定を行わない
+      }
+      return; // 編隊敵の途中撃破はドロップなし
+    }
+
+    // 通常敵の撃破カウント
+    this.killCount++;
+    if (this.killCount % 10 === 0) {
+      this.items.push(new Capsule(e.x, e.y));
+      this.audio.beep("square", 1100, 0.08, 0.15);
+    }
 
     this.audio.noiseBurst(0.05, 0.12);
     this.camera.shake(4, 0.12);
@@ -231,9 +252,28 @@ export class World {
   }
 
   onBossKilled(b) {
-      // stage7は演出に入る
+    // stage7 logic: Multiple bosses
     if (this.stageIndex === 7) {
-      this.player.addScore(80000);
+      // Check if any other boss is alive
+      const others = this.enemies.filter(e => e instanceof Boss && !e.dead && e !== b);
+      if (others.length > 0) {
+        // Just explosion, no heavy fanfare yet
+        this.player.addScore(80000);
+        this.audio.noiseBurst(0.4, 0.4);
+        this.spawnExplosion(b.x, b.y, 1.0);
+        return;
+      }
+
+      // Last boss!
+      this.player.addScore(100000);
+      this.bullets = []; // Clear bullets
+      this.enemies = []; // Clear other enemies
+
+      // Big explosion & Ending
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => this.spawnExplosion(b.x + rand(-100, 100), b.y + rand(-100, 100), 1.5), i * 200);
+      }
+
       this.startEnding();
       return;
     }
@@ -244,10 +284,30 @@ export class World {
     this.audio.beep("sawtooth", 220, 0.22, 0.14);
     this.camera.shake(12, 0.28);
 
+    // ボス撃破で静寂(宇宙)に戻る
+    this.audio.playBGM("space");
+
     this.stageClear = true;
     this.stageClearTimer = 0;
 
-    for (let i = 0; i < 100; i++) {
+    // 派手な爆発音
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => this.audio.noiseBurst(0.4, 0.6), i * 150);
+      setTimeout(() => this.camera.shake(20, 0.4), i * 150);
+    }
+
+    // 大量の爆発エフェクト
+    for (let i = 0; i < 120; i++) {
+      // ランダムな遅延で爆発させる
+      setTimeout(() => {
+        this.spawnExplosion(
+          b.x + rand(-60, 60),
+          b.y + rand(-60, 60),
+          rand(0.5, 1.2), // scale
+          i % 3 === 0     // big?
+        );
+      }, rand(0, 1500)); // 1.5秒かけて爆発し続ける
+
       this.particles.push(
         new Particle(
           b.x + rand(-60, 60),
@@ -259,7 +319,8 @@ export class World {
         )
       );
     }
-    this.showBanner("STAGE CLEAR", 1.9);
+
+    setTimeout(() => this.showBanner("STAGE CLEAR", 1.9), 1000);
   }
 
   // -----------------------------
@@ -280,12 +341,16 @@ export class World {
 
       const name =
         this.stageIndex === 2 ? "NEBULA CAVERN" :
-        this.stageIndex === 3 ? "MOAI BASTION" :
-        `STAGE ${this.stageIndex}`;
+          this.stageIndex === 3 ? "MOAI BASTION" :
+            `STAGE ${this.stageIndex}`;
       this.showBanner(`STAGE ${this.stageIndex}: ${name}`, 1.9);
     } else {
       this.showBanner("ALL CLEAR (TO BE CONTINUED)", 2.2);
     }
+
+    // BGMは stage.js のタイムライン冒頭で "space" が再生されるのでここでは呼ばなくてOK、
+    // または念の為呼んでおく
+    this.audio.playBGM("space");
 
     this.stageClear = false;
     this.stageClearTimer = 0;

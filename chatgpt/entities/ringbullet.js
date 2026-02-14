@@ -19,6 +19,7 @@ export class RingBullet extends Entity {
     if (this.hp <= 0) {
       this.dead = true;
       w.spawnExplosion(this.x, this.y, 0.4, true);
+      w.audio.beep("triangle", 800, 0.05, 0.08); // 破壊音
     }
   }
 

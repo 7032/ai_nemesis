@@ -25,6 +25,13 @@ export class PowerUpSystem {
     const idx = this.gauge - 1;
     if (idx < 0) return;
     const slot = CONFIG.POWERUP.gaugeSlots[idx];
+
+    // 装備済みなら何もしない（ゲージも消費しない）
+    if (slot === "MISSILE" && this.missile) return;
+    if (slot === "DOUBLE" && this.double) return;
+    if (slot === "LASER" && this.laser) return;
+    if (slot === "OPTION" && this.optionCount >= CONFIG.OPTION.max) return;
+
     const a = this.w.audio;
 
     switch (slot) {

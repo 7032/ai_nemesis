@@ -60,6 +60,13 @@ export class Terrain {
     const cached = this._cache.get(key);
     if (cached) return cached;
 
+    // 開始地点より前は地形なし
+    if (worldX < this.startScrollX) {
+      const out = { top: -100, bot: CONFIG.H + 100 };
+      this._cache.set(key, out);
+      return out;
+    }
+
     const t = this.theme;
     const nTop = this._noise1D(worldX * 0.02) * 2 - 1;
     const nBot = this._noise1D((worldX + 999) * 0.02) * 2 - 1;
@@ -110,8 +117,11 @@ export class Terrain {
     // top fill
     g.beginPath();
     g.moveTo(0, 0);
-    for (let x = 0; x <= CONFIG.W; x += 8) {
+    // 描画開始位置調整（画面内かつstartScrollX以降）
+    const startX = Math.max(0, this.startScrollX - this.scrollX);
+    for (let x = startX; x <= CONFIG.W; x += 8) {
       const y = this.ceilingAt(x) + Math.sin(time * 0.6 + x * 0.01) * 1.2;
+      if (x === startX) g.moveTo(x, 0); // 始点移動
       g.lineTo(x, y);
     }
     g.lineTo(CONFIG.W, 0);
@@ -121,8 +131,9 @@ export class Terrain {
     // bottom fill
     g.beginPath();
     g.moveTo(0, CONFIG.H);
-    for (let x = 0; x <= CONFIG.W; x += 8) {
+    for (let x = startX; x <= CONFIG.W; x += 8) {
       const y = this.floorAt(x) + Math.sin(time * 0.6 + x * 0.01 + 1.2) * 1.2;
+      if (x === startX) g.moveTo(x, CONFIG.H);
       g.lineTo(x, y);
     }
     g.lineTo(CONFIG.W, CONFIG.H);
@@ -135,16 +146,17 @@ export class Terrain {
     g.lineWidth = 2;
 
     g.beginPath();
-    for (let x = 0; x <= CONFIG.W; x += 6) {
+    g.beginPath();
+    for (let x = startX; x <= CONFIG.W; x += 6) {
       const y = this.ceilingAt(x);
-      if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      if (x === startX) g.moveTo(x, y); else g.lineTo(x, y);
     }
     g.stroke();
 
     g.beginPath();
-    for (let x = 0; x <= CONFIG.W; x += 6) {
+    for (let x = startX; x <= CONFIG.W; x += 6) {
       const y = this.floorAt(x);
-      if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      if (x === startX) g.moveTo(x, y); else g.lineTo(x, y);
     }
     g.stroke();
 
@@ -154,16 +166,16 @@ export class Terrain {
       g.lineWidth = 10;
 
       g.beginPath();
-      for (let x = 0; x <= CONFIG.W; x += 8) {
+      for (let x = startX; x <= CONFIG.W; x += 8) {
         const y = this.ceilingAt(x) + 12;
-        if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        if (x === startX) g.moveTo(x, y); else g.lineTo(x, y);
       }
       g.stroke();
 
       g.beginPath();
-      for (let x = 0; x <= CONFIG.W; x += 8) {
+      for (let x = startX; x <= CONFIG.W; x += 8) {
         const y = this.floorAt(x) - 12;
-        if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        if (x === startX) g.moveTo(x, y); else g.lineTo(x, y);
       }
       g.stroke();
     }
