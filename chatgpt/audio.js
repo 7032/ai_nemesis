@@ -182,10 +182,21 @@ export class AudioBus {
     sBoss.tracks[0].inst = "sawtooth";
     sBoss.tracks[1].inst = "sawtooth";
 
+    // Ending (Orgel style)
+    const sEnding = mkSong("ending", 0.20,
+      [...rep(["C5", "G4", "E4", "C4"], 2), ...rep(["D5", "B4", "G4", "D4"], 2), "C5", "E5", "G5", "C6", "B5", "G5", "D5", "B4", "C5"],
+      rep(["C3", "C4"], 8),
+      []
+    );
+    sEnding.tracks[0].inst = "triangle";
+    sEnding.tracks[0].vol = 0.15;
+    sEnding.tracks[1].vol = 0.10;
+
     this.songs = {
       space: sSp,
       st1: sSt1, st2: sSt2, st3: sSt3, st4: sSt4, st5: sSt5, st6: sSt6, st7: sSt7,
-      boss: sBoss
+      boss: sBoss,
+      ending: sEnding
     };
   }
 

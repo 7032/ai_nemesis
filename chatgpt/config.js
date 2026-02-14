@@ -18,7 +18,7 @@ export const CONFIG = {
   },
 
   POWERUP: {
-    gaugeSlots: ["SPEED", "MISSILE", "DOUBLE", "LASER", "OPTION", "SHIELD", "OVERDRIVE"],
+    gaugeSlots: ["SPEED", "MISSILE", "DOUBLE", "LASER", "OPTION", "SHIELD", "RESET"],
     capsuleDropBase: 0.22,
     capsuleDropEarlyMul: 3.2,
     capsuleDropEarlyTime: 28.0,

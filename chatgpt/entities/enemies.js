@@ -279,6 +279,8 @@ export class Boss extends Entity {
 
     this.x = x;
     this.y = y;
+    this.homeY = y; // For Stage 7 movement
+    this.movePhase = Math.random() * 10;
     this.vx = -55;
 
     this.r = 74;
@@ -432,6 +434,12 @@ export class Boss extends Entity {
       }
       this.y = lerp(this.y, CONFIG.H / 2, 1 - Math.pow(0.0001, dt));
       return;
+    }
+
+    // Stage 7 special movement (Vertical Sine)
+    if (w.stageIndex === 7) {
+      this.movePhase += dt * 1.5;
+      this.y = this.homeY + Math.sin(this.movePhase) * 50;
     }
 
     const ceil = w.terrain.ceilingAt(this.x);

@@ -1,6 +1,7 @@
 import { Entity } from "./entity.js";
 import { CONFIG } from "../config.js";
 import { rand } from "../utils.js";
+import { RingBullet } from "./ringbullet.js";
 
 export class Volcano extends Entity {
   constructor(x, onCeil) {
@@ -64,23 +65,37 @@ export class Volcano extends Entity {
 
     if (this.x < -100) this.dead = true;
 
-    // Eruption
+    // Eruption logic
     this.eruptTimer -= dt;
     if (this.eruptTimer <= 0) {
-      this.eruptTimer = 2.5;
-      // Erupt!
-      w.audio.noiseBurst(0.2, 0.3);
-      w.camera.shake(3, 0.1);
+      this.eruptTimer = 3.5;
+      this.erupting = true;
+      this.eruptCount = 12; // More shots
+      this.eruptInterval = 0.06;
+      this.eruptT = 0;
+      w.audio.noiseBurst(0.2, 0.15); // Eruption start sound
+    }
 
-      const count = 5;
-      for (let i = 0; i < count; i++) {
-        const angle = (this.onCeil ? Math.PI * 0.5 : -Math.PI * 0.5) + rand(-0.8, 0.8);
-        const speed = rand(100, 180);
-        w.spawnBullet(
-          this.x, this.y - (this.onCeil ? -20 : 20),
-          Math.cos(angle) * speed, Math.sin(angle) * speed,
-          6, 1, false, "round" // round bullet mimicking rock/magma
-        );
+    if (this.erupting) {
+      this.eruptT -= dt;
+      if (this.eruptT <= 0) {
+        this.eruptT = this.eruptInterval;
+        this.eruptCount--;
+
+        // Fire Ring
+        const angleVar = rand(-0.4, 0.4);
+        const sp = rand(180, 260);
+        const baseAng = this.onCeil ? Math.PI * 0.5 : -Math.PI * 0.5;
+        const a = baseAng + angleVar;
+
+        const vx = Math.cos(a) * sp;
+        const vy = Math.sin(a) * sp;
+
+        // RingBullet import is needed at top of file
+        const r = new RingBullet(this.x, this.y, vx, vy);
+        w.enemies.push(r);
+
+        if (this.eruptCount <= 0) this.erupting = false;
       }
     }
   }

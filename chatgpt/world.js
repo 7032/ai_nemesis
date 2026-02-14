@@ -266,15 +266,7 @@ export class World {
 
       // Last boss!
       this.player.addScore(100000);
-      this.bullets = []; // Clear bullets
-      this.enemies = []; // Clear other enemies
-
-      // Big explosion & Ending
-      for (let i = 0; i < 10; i++) {
-        setTimeout(() => this.spawnExplosion(b.x + rand(-100, 100), b.y + rand(-100, 100), 1.5), i * 200);
-      }
-
-      this.startEnding();
+      this.startEndingSequence();
       return;
     }
 
