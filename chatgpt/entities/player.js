@@ -261,16 +261,34 @@ export class Player extends Entity {
     if (pu.missile && misHeld) {
       this.missileT -= dt;
       if (this.missileT <= 0) {
-        // Limit: 4 + 4 per option
-        const myMissiles = w.bullets.filter(b => b.owner === "player" && b.tag === "missile").length;
-        const limit = 4 * (1 + pu.optionCount);
+        let fired = false;
 
-        if (myMissiles < limit) {
-          this.missileT += 1 / CONFIG.MISSILE.rate;
-          // 常に下向きに発射
-          const dir = 1;
-          w.spawnMissile(this.x + 10, this.y + 10 * dir, dir, CONFIG.MISSILE.dmg * dmgMul);
+        // 1. Main Body
+        const mainCount = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === "main").length;
+        if (mainCount < 4) {
+          const m = w.spawnMissile(this.x + 10, this.y + 10, 1, CONFIG.MISSILE.dmg * dmgMul);
+          if (m) m.sourceId = "main";
+          fired = true;
+        }
+
+        // 2. Options
+        for (let i = 0; i < pu.optionCount; i++) {
+          const srcId = "opt" + i;
+          const optCount = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === srcId).length;
+          if (optCount < 4) {
+            const op = this.getOptionPos(i, pu);
+            const m = w.spawnMissile(op.x, op.y + 10, 1, CONFIG.MISSILE.dmg * dmgMul);
+            if (m) m.sourceId = srcId;
+            fired = true;
+          }
+        }
+
+        if (fired) {
+          this.missileT = 1.0 / CONFIG.MISSILE.rate;
           w.audio.beep("square", 280, 0.03, 0.04);
+        } else {
+          // Blocked by limits, wait
+          this.missileT = 0;
         }
       }
     } else this.missileT = 0;

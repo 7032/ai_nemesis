@@ -154,8 +154,9 @@ export class World {
   }
 
   spawnMissile(x, y, dir, dmg) {
-    // VXを減らし、VYを少し与えて急角度に落下させる
-    const m = new Bullet(x, y, 50 * dir, 60, 4, dmg, true, "missile");
+    // Speed doubled
+    const m = new Bullet(x, y, 100 * dir, 120, 4, dmg, true, "missile");
+    m.owner = "player";
     m.dir = dir;
     m.hug = false;
 
@@ -166,7 +167,7 @@ export class World {
       const floor = w.terrain.floorAt(m.x);
 
       if (!m.hug) {
-        m.y += dir * 240 * dt;
+        m.y += dir * 480 * dt;
         const targetY = dir < 0 ? ceil + 18 : floor - 18;
         if (dir < 0 && m.y <= targetY) {
           m.y = targetY;
@@ -188,6 +189,7 @@ export class World {
 
     // keep Bullet default draw (ellipse) — looks fine for missile too
     this.bullets.push(m);
+    return m;
   }
 
   // If you want to spawn ring bullets from anywhere:
