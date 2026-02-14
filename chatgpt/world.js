@@ -345,7 +345,7 @@ export class World {
     const perform = () => {
       // Create loop effect
       if (dur <= 0) {
-        this.showBanner("THE END", 9999);
+        this.startEnding();
         return;
       }
       dur -= 0.15;
