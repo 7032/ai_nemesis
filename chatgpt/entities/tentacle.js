@@ -127,9 +127,16 @@ export class Tentacle extends Entity {
       }
     }
 
-    // Firing from tip
-    const tip = this.segments[this.length - 1];
-    if (!tip.dead) {
+    // Firing from active tip
+    let tip = null;
+    for (let i = this.length - 1; i >= 0; i--) {
+      if (!this.segments[i].dead) {
+        tip = this.segments[i];
+        break;
+      }
+    }
+
+    if (tip) {
       this.fireTimer -= dt;
       if (this.fireTimer <= 0) {
         this.fireTimer = 1.2; // Faster fire (was 2.5)
