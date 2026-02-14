@@ -39,7 +39,7 @@ export const CONFIG = {
     hitStopMs: 10,
     startGrace: 0.06,
   },
-  MISSILE: { rate: 6, dmg: 1.35, speed: 420 },
+  MISSILE: { rate: 1.5, dmg: 1.35, speed: 420 },
 
   OPTION: {
     max: 6,

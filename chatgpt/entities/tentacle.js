@@ -22,7 +22,7 @@ export class Tentacle extends Entity {
       this.segments.push({
         x: x, y: y,
         hp: 8,
-        r: 14 - i, // taper
+        r: Math.max(3, 14 - i), // taper with min size
         dead: false
       });
     }

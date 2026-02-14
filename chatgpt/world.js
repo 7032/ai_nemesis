@@ -154,8 +154,8 @@ export class World {
   }
 
   spawnMissile(x, y, dir, dmg) {
-    // Speed doubled
-    const m = new Bullet(x, y, 100 * dir, 120, 4, dmg, true, "missile");
+    // Speed doubled -> Quadrupled to 400
+    const m = new Bullet(x, y, 400 * dir, 120, 4, dmg, true, "missile");
     m.owner = "player";
     m.dir = dir;
     m.hug = false;
