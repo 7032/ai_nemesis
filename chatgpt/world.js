@@ -374,6 +374,7 @@ export class World {
   // -----------------------------
   advanceStage() {
     this.stageIndex += 1;
+    this.stage6BossCount = 0;
     this.stageTime = 0;
     this.scrollX = 0;
 

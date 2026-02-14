@@ -226,10 +226,10 @@ export class Player extends Entity {
     this.pushPath();
 
     if (inp.tap("KeyC") || inp.tap("Enter")) pu.commit();
-    if (inp.tap("KeyV")) pu.toggleFormation();
 
-    const shotHeld = inp.down("KeyZ") || inp.down("Space");
-    const misHeld = inp.down("KeyX");
+    const vHeld = inp.down("KeyV");
+    const shotHeld = inp.down("KeyZ") || inp.down("Space") || vHeld;
+    const misHeld = inp.down("KeyX") || vHeld;
     const dmgMul = pu.damageMultiplier();
 
     if (pu.laser) {
