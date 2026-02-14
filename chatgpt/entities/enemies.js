@@ -294,7 +294,7 @@ export class Boss extends Entity {
 
     // stage2 slightly softer, but generally scale up hp
     let hpMul = (stageIndex === 2 ? 0.92 : 1.0) + (stageIndex - 1) * 0.15;
-    if (stageIndex === 7) hpMul *= 0.6; // Weaker individual bosses for trio
+    // Standard scaling for all stages now
 
     this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
@@ -487,6 +487,12 @@ export class Boss extends Entity {
       if (this.state === "enter" && this.x < CONFIG.W - 150) {
         this.vx = 0;
         this.state = "fight";
+      }
+
+      // Death check (IMPORTANT: Must be before return)
+      if (this.hp <= 0) {
+        this.dead = true;
+        w.onBossKilled(this);
       }
       return;
     }
