@@ -294,7 +294,7 @@ export class Boss extends Entity {
 
     // stage2 slightly softer, but generally scale up hp
     let hpMul = (stageIndex === 2 ? 0.92 : 1.0) + (stageIndex - 1) * 0.15;
-    if (stageIndex === 7) hpMul *= 3.0; // Stage 7 Boss tough!
+    // if (stageIndex === 7) hpMul *= 3.0; // Removed per user request
 
     this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
