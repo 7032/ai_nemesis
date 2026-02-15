@@ -344,13 +344,21 @@ export class Player extends Entity {
         let fired = false;
 
         const sp = 210; // Half speed
+        const rad60 = Math.PI / 3;
+        const rad30 = Math.PI / 6;
+
+        const vx60 = Math.cos(rad60) * sp;
+        const vy60 = Math.sin(rad60) * sp; // Down Steep
+        const vx30 = Math.cos(rad30) * sp;
+        const vy30 = Math.sin(rad30) * sp; // Down Shallow
 
         // Helper to fire check
         const spawnM = (srcId, countFilterId, vx, vy) => {
           const count = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === countFilterId).length;
-          // Limit check: 2 missiles per "direction slot"? 
-          // Or global? Existing: 4 per source.
-          if (count < 4) {
+          // Limit check: Level 2 = 8, else 4
+          const limit = (pu.missileLevel >= 2) ? 8 : 4;
+
+          if (count < limit) {
             const m = w.spawnMissile(this.x + 10, this.y + 10, vx, vy, CONFIG.MISSILE.dmg * dmgMul);
             if (m) m.sourceId = srcId;
             return true;
@@ -359,11 +367,10 @@ export class Player extends Entity {
         };
 
         // 1. Main Body
-        // Down
-        if (spawnM("main", "main", sp, 120)) fired = true;
-        // Up (Lvl 2)
+        if (spawnM("main", "main", vx60, vy60)) fired = true;
+        // Level 2: Second missile at 30 deg
         if (pu.missileLevel >= 2) {
-          if (spawnM("main_u", "main_u", sp, -120)) fired = true;
+          if (spawnM("main", "main", vx30, vy30)) fired = true;
         }
 
         // 2. Options
@@ -381,9 +388,9 @@ export class Player extends Entity {
             return false;
           };
 
-          if (spawnMO(srcId, srcId, sp, 120)) fired = true;
+          if (spawnMO(srcId, srcId, vx60, vy60)) fired = true;
           if (pu.missileLevel >= 2) {
-            if (spawnMO(srcId + "_u", srcId + "_u", sp, -120)) fired = true;
+            if (spawnMO(srcId, srcId, vx30, vy30)) fired = true;
           }
         }
 

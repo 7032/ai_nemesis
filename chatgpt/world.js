@@ -81,19 +81,19 @@ export class World {
       "STARLINE VECTOR",
       "",
       "DIRECTOR",
-      "ChatGPT & You",
+      "7032",
       "",
       "GAME DESIGN",
-      "Stage Script / Rhythm",
+      "7032",
       "",
       "PROGRAMMING",
-      "ES Modules Refactor",
+      "ChatGPT & Antigravity",
       "",
       "ART DIRECTION",
-      "Neon Vector Minimal",
+      "ChatGPT",
       "",
       "SOUND",
-      "Tiny Synth & Noise",
+      "ChatGPT",
       "",
       "SPECIAL THANKS",
       "You (the pilot)",
@@ -161,6 +161,34 @@ export class World {
   spawnMissile(x, y, vx, vy, dmg) {
     const m = new Bullet(x, y, vx, vy, 4, dmg, true, "missile");
     m.owner = "player";
+    m.dir = Math.sign(vy) || 1; // 1: Floor, -1: Ceil
+    m.hug = false;
+
+    // Terrain hugging logic
+    m.update = (dt, w) => {
+      const floor = w.terrain.floorAt(m.x);
+      const ceil = w.terrain.ceilingAt(m.x);
+
+      if (!m.hug) {
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+
+        const targetY = m.dir > 0 ? floor - 14 : ceil + 14;
+        if ((m.dir > 0 && m.y >= targetY) || (m.dir < 0 && m.y <= targetY)) {
+          m.y = targetY;
+          m.hug = true;
+          m.vy = 0;
+        }
+      } else {
+        m.x += m.vx * dt; // Keep horizontal speed
+        const targetY = m.dir > 0 ? floor - 14 : ceil + 14;
+        m.y = targetY; // Snap to terrain
+      }
+
+      if (m.x > CONFIG.W + 100 || m.x < -100) m.dead = true;
+      if (floor - ceil < 20) m.dead = true;
+    };
+
     this.bullets.push(m);
     return m;
   }
@@ -819,7 +847,13 @@ export class World {
 
       g.fillStyle = "rgba(230,240,255,0.9)";
       g.font = "12px system-ui";
-      g.fillText(slots[i], 8, 13);
+
+      let showText = true;
+      if (slots[i] === "MISSILE" && pu.missileLevel >= 2) showText = false;
+      if (slots[i] === "DOUBLE" && pu.doubleLevel >= 2) showText = false;
+      if (slots[i] === "LASER" && pu.laserLevel >= 2) showText = false;
+
+      if (showText) g.fillText(slots[i], 8, 13);
       g.restore();
     }
 
