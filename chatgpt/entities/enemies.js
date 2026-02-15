@@ -464,9 +464,11 @@ export class Boss extends Entity {
       const bosses = w.enemies.filter(e => e.isBoss && !e.dead);
       const count = bosses.length;
 
-      // Initialize Final Form (Tentacles) if last one
-      if (count === 1 && !this.hasTentacles) {
-        this.hasTentacles = true;
+      // Initialize Final Form (Tentacles + Full Heal) if last one
+      if (count === 1 && !this.isFinalForm) {
+        this.isFinalForm = true;
+        this.hp = this._maxHp; // Full Heal
+
         // Spawn Tentacles
         const t1 = new Tentacle(this.x, this.y - 40, true, 10); // Upper
         const t2 = new Tentacle(this.x, this.y + 40, false, 10); // Lower
@@ -495,7 +497,7 @@ export class Boss extends Entity {
           if (this.x > CONFIG.W - 200) {
             this.x = CONFIG.W - 200;
             this.chargeMode = "hover";
-            this.chargeTimer = 9.0; // Wait before next charge (Extended)
+            this.chargeTimer = 12.0; // Wait before next charge (Extended to 12s)
           }
           this.y = lerp(this.y, CONFIG.H / 2, 0.1);
         } else if (this.chargeMode === "attack") {

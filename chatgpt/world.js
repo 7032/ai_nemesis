@@ -585,7 +585,8 @@ export class World {
             let dmg = b.dmg;
             if (b instanceof Laser) {
               // Stage 7: 20x res (0.05), Others: 5x res (0.2)
-              const mul = (this.stageIndex === 7) ? 0.05 : 0.2;
+              let mul = (this.stageIndex === 7) ? 0.05 : 0.2;
+              if (e.isFinalForm) mul *= 0.5; // Double resistance in final form
               dmg *= mul;
             }
             e.takeDamage(dmg, this, b.x, b.y);
