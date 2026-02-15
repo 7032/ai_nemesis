@@ -60,6 +60,187 @@ h1::after {
     opacity: 0.5;
 }
 
+/* Featured Game Section */
+.featured-game {
+    background: linear-gradient(135deg, rgba(0, 243, 255, 0.1) 0%, rgba(188, 19, 254, 0.1) 100%);
+    border: 2px solid var(--border-color);
+    border-radius: 15px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.featured-game:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.5);
+    border-color: var(--primary-color);
+}
+
+.featured-badge {
+    position: absolute;
+    top: -12px;
+    left: 30px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: var(--bg-color);
+    padding: 4px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border-radius: 20px;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.7);
+}
+
+.featured-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+}
+
+.featured-ai {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.featured-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.featured-features {
+    list-style: none;
+    margin-bottom: 1.5rem;
+    padding-left: 0;
+}
+
+.featured-features li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.featured-features li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.featured-controls {
+    font-size: 0.9rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    border-left: 3px solid var(--primary-color);
+}
+
+.featured-controls strong {
+    color: var(--primary-color);
+}
+
+.featured-button {
+    display: inline-block;
+    padding: 1rem 3rem;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: var(--bg-color);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 50px;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.featured-button::before {
+    display: none;
+}
+
+.featured-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.9);
+    text-shadow: none;
+}
+
+/* Other Games Section */
+.other-games {
+    margin-bottom: 2rem;
+}
+
+.other-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.other-games-list {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.other-game-item {
+    flex: 1;
+    min-width: 250px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.other-game-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 243, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.other-game-item a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.other-game-item a::before {
+    display: none;
+}
+
+.other-game-name {
+    font-size: 1rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.other-game-ai {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
 table {
     width: 100%;
     border-collapse: separate;
@@ -148,6 +329,29 @@ a:hover::before {
     td,
     th {
         padding: 1rem;
+    }
+
+    .featured-game {
+        padding: 1.5rem;
+    }
+
+    .featured-title {
+        font-size: 1.8rem;
+    }
+
+    .featured-button {
+        width: 100%;
+        text-align: center;
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+    }
+
+    .other-games-list {
+        flex-direction: column;
+    }
+
+    .other-game-item {
+        min-width: 100%;
     }
 }
 
