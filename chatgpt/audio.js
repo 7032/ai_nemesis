@@ -364,6 +364,10 @@ export class AudioBus {
   }
 
   beep(type = "tri", freq = 440, dur = 0.08, gain = 0.2) {
+    if (type === "noise") {
+      this.noiseBurst(dur, gain);
+      return;
+    }
     if (!this.ctx) return;
     const o = this.ctx.createOscillator();
     o.type = type;
