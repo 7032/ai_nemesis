@@ -147,20 +147,30 @@ export class Player extends Entity {
 
     for (const e of w.enemies) {
       if (e.dead) continue;
-      if (e.x + (e.r || 18) < x0) continue;
 
-      const dy = Math.abs(e.y - y0);
-      const rr = (e.r || 18);
-      if (dy > (CONFIG.LASER.widthCore * 0.6 + rr * 0.7)) continue;
+      let isHit = false;
 
-      hit = true;
-
-      // Bossは引数4つ版 takeDamage を持つ想定
-      if (typeof e.takeDamage === "function" && e.takeDamage.length >= 3) {
-        e.isBoss = true;
-        e.takeDamage(dmg, w, e.x - 40, y0);
+      if (typeof e.checkLaserHit === "function") {
+        const lw = CONFIG.LASER.widthCore * 0.6;
+        if (e.checkLaserHit(x0, y0, lw)) isHit = true;
       } else {
-        e.takeDamage?.(dmg, w);
+        if (e.x + (e.r || 18) >= x0) {
+          const dy = Math.abs(e.y - y0);
+          const rr = (e.r || 18);
+          if (dy <= (CONFIG.LASER.widthCore * 0.6 + rr * 0.7)) isHit = true;
+        }
+      }
+
+      if (isHit) {
+        hit = true;
+        if (typeof e.takeLaserDamage === "function") {
+          e.takeLaserDamage(dmg, w);
+        } else if (typeof e.takeDamage === "function" && e.takeDamage.length >= 3) {
+          e.isBoss = true;
+          e.takeDamage(dmg, w, e.x - 40, y0);
+        } else {
+          e.takeDamage?.(dmg, w);
+        }
       }
     }
 
@@ -246,39 +256,52 @@ export class Player extends Entity {
         const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
 
         if (this.shotT <= 0) {
-          // Limit: 6 bullets on screen
-          const totalShots = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile").length;
-          const nextCount = pu.double ? 2 : 1;
+          let firedAny = false;
+          const limit = 6;
+          const pairCount = pu.double ? 2 : 1;
 
-          if (totalShots + nextCount <= 6) {
-            this.shotT = 1 / rate; // Strict interval reset
+          // 1. Main
+          const mainActive = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile" && (!b.sourceId || b.sourceId === "main")).length;
+          if (mainActive + pairCount <= limit) {
             if (pu.double) {
-              w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
+              const b1 = w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
+              if (b1) b1.sourceId = "main";
               const a = -Math.PI / 4;
-              w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
+              const b2 = w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
+              if (b2) b2.sourceId = "main";
             } else {
-              w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
+              const b = w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
+              if (b) b.sourceId = "main";
             }
-            w.audio.beep("square", 520, 0.02, 0.03);
+            firedAny = true;
+          }
 
-            // Sync Option Fire
-            if (pu.optionCount > 0) {
-              for (let i = 0; i < pu.optionCount; i++) {
+          // 2. Options
+          if (pu.optionCount > 0) {
+            for (let i = 0; i < pu.optionCount; i++) {
+              const srcId = "opt" + i;
+              const optActive = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile" && b.sourceId === srcId).length;
+
+              if (optActive + pairCount <= limit) {
                 const op = this.getOptionPos(i, pu);
                 if (pu.double) {
-                  w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
+                  const b1 = w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
+                  if (b1) b1.sourceId = srcId;
                   const a = -Math.PI / 4;
-                  w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
+                  const b2 = w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
+                  if (b2) b2.sourceId = srcId;
                 } else {
-                  w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
+                  const b = w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
+                  if (b) b.sourceId = srcId;
                 }
+                firedAny = true;
               }
             }
-          } else {
-            // Blocked by limit: Keep shotT at 0 (ready) or wait? 
-            // If we want to prevent machinegun, we should maybe NOT reset shotT? 
-            // Just let it stay <= 0. Next frame checks limit again.
-            // This corresponds to "Fastest possible fire under limit".
+          }
+
+          if (firedAny) {
+            this.shotT = 1 / rate;
+            w.audio.beep("square", 520, 0.02, 0.03);
           }
         }
       } else this.shotT = 0;

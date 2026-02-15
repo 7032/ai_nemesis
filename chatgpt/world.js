@@ -151,7 +151,9 @@ export class World {
       vy *= m;
     }
 
-    this.bullets.push(new Bullet(x, y, vx, vy, r, dmg, isPlayer, kind));
+    const b = new Bullet(x, y, vx, vy, r, dmg, isPlayer, kind);
+    this.bullets.push(b);
+    return b;
   }
 
   spawnMissile(x, y, dir, dmg) {

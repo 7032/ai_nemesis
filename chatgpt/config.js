@@ -33,7 +33,9 @@ export const CONFIG = {
   DOUBLE: { rate: 10, dmg: 0.85, speed: 620 },
   LASER: {
     tickRate: 60,
-    dps: 11.5,
+    tickRate: 60,
+    dps: 80.0, // Buffed 11.5 -> 80.0
+    widthCore: 4,
     widthCore: 4,
     widthGlow: 12,
     hitStopMs: 10,
@@ -56,7 +58,7 @@ export const CONFIG = {
   },
 
   GROUND: {
-    enemyHP: 14,
+    enemyHP: 14, // Buffed 14 -> 60
     enemyScore: 280,
     bulletRate: 0.48,
   },

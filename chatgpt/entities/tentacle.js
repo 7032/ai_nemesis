@@ -39,6 +39,31 @@ export class Tentacle extends Entity {
     return false;
   }
 
+  checkLaserHit(lx, ly, lw) {
+    for (const seg of this.segments) {
+      if (seg.dead) continue;
+      if (seg.x < lx) continue;
+
+      const dy = Math.abs(seg.y - ly);
+      if (dy < seg.r + lw) return true;
+    }
+    return false;
+  }
+
+  takeLaserDamage(dmg, w) {
+    if (this.dead) return;
+    this.dead = true;
+    w.audio.beep("noise", 100, 0.2, 0.4);
+    w.onEnemyKilled({ score: 800, x: this.segments[0].x, y: this.segments[0].y, formationId: null });
+
+    for (const seg of this.segments) {
+      if (!seg.dead) {
+        seg.dead = true;
+        w.spawnExplosion(seg.x, seg.y, 0.4);
+      }
+    }
+  }
+
   takeDamage(dmg, w, hitX, hitY) {
     // Find closest segment to hit
     let bestDist = 999;

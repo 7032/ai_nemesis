@@ -297,7 +297,7 @@ export class Boss extends Entity {
 
     // stage2 slightly softer, but generally scale up hp
     let hpMul = (stageIndex === 2 ? 0.92 : 1.0) + (stageIndex - 1) * 0.15;
-    // Standard scaling for all stages now
+    if (stageIndex === 7) hpMul *= 0.5; // Halve HP for Stage 7 (User request)
 
     this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
@@ -364,7 +364,7 @@ export class Boss extends Entity {
     const dy = hitY - wy;
     const d = Math.hypot(dx, dy);
 
-    let mul = 0.60;
+    let mul = 1.0; // Removed resistance (was 0.60)
     if (this.weakOpen > 0.55 && d < 24) mul = 1.35;
     if (this.weakOpen > 0.85 && d < 16) mul = 1.55;
 
