@@ -14,7 +14,7 @@ export class Volcano extends Entity {
     this.y = onCeil ? 60 : CONFIG.H - 60; // Approximate, adjusted in update?
 
     this.r = 30;
-    this.hp = 60;
+    this.hp = 20;
     this.score = 1500;
 
     this.eruptTimer = rand(1.0, 3.0);
