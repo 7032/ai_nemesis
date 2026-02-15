@@ -36,7 +36,8 @@ export class World {
     this.bullets = [];   // Bullet / Missile (friendly & enemy)
     this.enemies = [];   // AirEnemy / GroundEnemy / Boss / Moai / RingBullet
     this.particles = [];
-    this.items = [];
+    this.startEnding = false; // flag
+    this.respawnBoostT = 0;
 
     this.player = new Player(this);
     this.powerUp = new PowerUpSystem(this);
@@ -209,6 +210,7 @@ export class World {
     const early =
       this.stageIndex === 1 && this.stageTime < CONFIG.POWERUP.capsuleDropEarlyTime;
     if (early) chance *= CONFIG.POWERUP.capsuleDropEarlyMul;
+    if (this.respawnBoostT > 0) chance *= CONFIG.POWERUP.capsuleDropRespawnMul;
 
     if (e instanceof GroundEnemy || e instanceof Moai) chance *= 0.75;
     if (e instanceof Boss) chance = 0.0;
@@ -365,7 +367,6 @@ export class World {
           // Explosion uses World coords.
           // Player/Cam doesn't scroll much?
           // Let's assume absolute coords are fine if camera isn't moving fast.
-          rand(20, CONFIG.W - 20),
           rand(20, CONFIG.H - 20),
           rand(0.5, 1.5)
         );
@@ -580,6 +581,7 @@ export class World {
     if (this.ending) {
       // hitstopは無視して演出優先
       this.time += dt;
+      this.respawnBoostT = Math.max(0, this.respawnBoostT - dt);
       this.camera.update(dt);
 
       const e = this.ending;

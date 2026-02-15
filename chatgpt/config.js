@@ -22,6 +22,8 @@ export const CONFIG = {
     capsuleDropBase: 0.22,
     capsuleDropEarlyMul: 3.2,
     capsuleDropEarlyTime: 28.0,
+    capsuleDropRespawnMul: 4.0,
+    capsuleDropRespawnDuration: 10.0,
     overdriveDuration: 8.0,
     overdrivePowerMul: 1.35,
     overdriveEndSlow: 0.90,

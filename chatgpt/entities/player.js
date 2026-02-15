@@ -130,6 +130,7 @@ export class Player extends Entity {
     this.x = 130; this.y = CONFIG.H / 2;
     this.vx = 0; this.vy = 0;
     this.invulnT = CONFIG.PLAYER.respawnIFrames;
+    this.w.respawnBoostT = CONFIG.POWERUP.capsuleDropRespawnDuration;
     this.mult = 1; this.multT = 0;
 
     this.optionState = [];
