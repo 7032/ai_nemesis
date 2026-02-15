@@ -1011,6 +1011,7 @@ export class World {
     this.bullets = [];
     this.enemies = [];
     this.items = [];
+    this.particles = []; // Clear debris
 
     this.ending = {
       phase: "escape",     // escape -> credits -> done
