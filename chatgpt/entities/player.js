@@ -244,7 +244,8 @@ export class Player extends Entity {
       if (shotHeld) {
         // Limit: 6 bullets on screen
         const totalShots = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile").length;
-        if (totalShots < 6) {
+        const nextCount = pu.double ? 2 : 1;
+        if (totalShots + nextCount <= 6) {
           this.shotT -= dt;
           const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
           if (this.shotT <= 0) {
