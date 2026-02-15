@@ -94,6 +94,18 @@ export class AirEnemy extends Entity {
           resetTime *= 4.0;
         }
 
+        // Scale by Player Options (User Request)
+        // Baseline (High difficulty) is for 2 Options.
+        // 0 Opt: 1/3 strength -> Interval x3
+        // 1 Opt: 1/2 strength -> Interval x2
+        // 2 Opt: 1.0 strength -> Interval x1
+        // 3 Opt: 1.5 strength -> Interval / 1.5
+        // 4 Opt: 2.0 strength
+        // 5 Opt: 2.5 strength
+        const opt = (w.powerUp ? w.powerUp.optionCount : 0);
+        const strength = (opt === 0) ? 0.33 : (opt * 0.5);
+        resetTime /= strength;
+
         // Apply fireMul (general difficulty scaler)
         this._shootT = resetTime * fireMul(w);
 
