@@ -358,6 +358,8 @@ export class Boss extends Entity {
   }
 
   takeDamage(dmg, w, hitX = 0, hitY = 0) {
+    if (this.state === "enter") return; // Invulnerable during entry
+
     const wx = this.x - 40;
     const wy = this.y;
     const dx = hitX - wx;

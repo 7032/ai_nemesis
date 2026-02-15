@@ -1078,6 +1078,7 @@ export class World {
     this.stageClear = false;
     this.stageClearTimer = 0;
     this.ending = null;
+    this.isEndingSequence = false;
 
     // プレイヤー位置を整える
     this.player.dead = false;
