@@ -254,25 +254,39 @@ export class Player extends Entity {
     if (!pu.laser) {
       if (shotHeld) {
         this.shotT -= dt;
-        const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
+        const level = pu.doubleLevel;
+        const rate = (level > 0) ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
 
         if (this.shotT <= 0) {
           let firedAny = false;
-          const limit = 6;
-          const pairCount = pu.double ? 2 : 1;
+          // Level 0: 1 bullet, Limit 6
+          // Level 1: 2 bullets, Limit 6? (User said "Max 3 shots" -> 3 pairs = 6 bullets)
+          // Level 2: 3 bullets, Limit 12 (User said "Max 4 shots" -> 4 triplets = 12 bullets)
+          const limit = (level === 2) ? 12 : 6;
+          const volleySize = (level === 2) ? 3 : (level === 1 ? 2 : 1);
 
           // 1. Main
           const mainActive = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile" && (!b.sourceId || b.sourceId === "main")).length;
-          if (mainActive + pairCount <= limit) {
-            if (pu.double) {
-              const b1 = w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
-              if (b1) b1.sourceId = "main";
-              const a = -Math.PI / 4;
-              const b2 = w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
-              if (b2) b2.sourceId = "main";
-            } else {
-              const b = w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
+          if (mainActive + volleySize <= limit) {
+            const sp = (level > 0 ? CONFIG.DOUBLE.speed : CONFIG.SHOT.speed);
+            const dmg = (level > 0 ? 0.85 : 1.0) * dmgMul;
+
+            const mkB = (bx, by, vx, vy, k) => {
+              const b = w.spawnBullet(bx, by, vx, vy, 3, dmg, true, k);
               if (b) b.sourceId = "main";
+            };
+
+            // Front
+            mkB(this.x + 18, this.y, sp, 0, "round");
+
+            if (level === 1) {
+              const a = -Math.PI / 4; // 45 deg up
+              mkB(this.x + 16, this.y, Math.cos(a) * sp, Math.sin(a) * sp, "needle");
+            } else if (level === 2) {
+              const a1 = -Math.PI / 6; // 30 deg up
+              mkB(this.x + 16, this.y, Math.cos(a1) * sp, Math.sin(a1) * sp, "needle");
+              const a2 = -Math.PI / 3; // 60 deg up
+              mkB(this.x + 14, this.y, Math.cos(a2) * sp, Math.sin(a2) * sp, "needle");
             }
             firedAny = true;
           }
@@ -283,17 +297,28 @@ export class Player extends Entity {
               const srcId = "opt" + i;
               const optActive = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile" && b.sourceId === srcId).length;
 
-              if (optActive + pairCount <= limit) {
+              if (optActive + volleySize <= limit) {
                 const op = this.getOptionPos(i, pu);
-                if (pu.double) {
-                  const b1 = w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
-                  if (b1) b1.sourceId = srcId;
-                  const a = -Math.PI / 4;
-                  const b2 = w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
-                  if (b2) b2.sourceId = srcId;
-                } else {
-                  const b = w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
+                const sp = (level > 0 ? CONFIG.DOUBLE.speed : CONFIG.SHOT.speed);
+                const dmg = (level > 0 ? 0.55 : 0.55) * dmgMul; // Options have lower dmg? Original code 0.55
+
+                // Helper for Option
+                const mkBO = (bx, by, vx, vy, k) => {
+                  const b = w.spawnBullet(bx, by, vx, vy, 2.5, dmg, true, k); // r=2.5
                   if (b) b.sourceId = srcId;
+                };
+
+                // Front
+                mkBO(op.x + 14, op.y, sp, 0, "round");
+
+                if (level === 1) {
+                  const a = -Math.PI / 4;
+                  mkBO(op.x + 12, op.y, Math.cos(a) * sp, Math.sin(a) * sp, "needle");
+                } else if (level === 2) {
+                  const a1 = -Math.PI / 6;
+                  mkBO(op.x + 12, op.y, Math.cos(a1) * sp, Math.sin(a1) * sp, "needle");
+                  const a2 = -Math.PI / 3;
+                  mkBO(op.x + 10, op.y, Math.cos(a2) * sp, Math.sin(a2) * sp, "needle");
                 }
                 firedAny = true;
               }

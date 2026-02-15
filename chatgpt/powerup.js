@@ -6,7 +6,7 @@ export class PowerUpSystem {
     this.gauge = 0;
     this.speedLevel = 0;
     this.missile = false;
-    this.double = false;
+    this.doubleLevel = 0;
     this.laser = false;
     this.optionCount = 0;
     this.shield = false;
@@ -28,7 +28,7 @@ export class PowerUpSystem {
 
     // 装備済みなら何もしない（ゲージも消費しない）
     if (slot === "MISSILE" && this.missile) return;
-    if (slot === "DOUBLE" && this.double) return;
+    if (slot === "DOUBLE" && this.doubleLevel >= 2) return;
     if (slot === "LASER" && this.laser) return;
     if (slot === "OPTION" && this.optionCount >= CONFIG.OPTION.max) return;
 
@@ -42,9 +42,12 @@ export class PowerUpSystem {
       case "MISSILE":
         this.missile = true; a.beep("square", 420, 0.06, 0.10); break;
       case "DOUBLE":
-        this.double = true; this.laser = false; a.beep("square", 470, 0.06, 0.10); break;
+        this.doubleLevel = Math.min(2, this.doubleLevel + 1);
+        this.laser = false;
+        a.beep("square", 470, 0.06, 0.10);
+        break;
       case "LASER":
-        this.laser = true; this.double = false; a.beep("square", 620, 0.06, 0.11); break;
+        this.laser = true; this.doubleLevel = 0; a.beep("square", 620, 0.06, 0.11); break;
       case "OPTION":
         if (this.optionCount < CONFIG.OPTION.max) { this.optionCount++; a.beep("square", 740, 0.07, 0.10); }
         else a.beep("triangle", 240, 0.05, 0.06);
@@ -95,6 +98,7 @@ export class PowerUpSystem {
   onDeathPenalty() {
     this.speedLevel = Math.max(0, this.speedLevel - 1);
     this.optionCount = Math.max(0, this.optionCount - 1);
+    this.doubleLevel = Math.max(0, this.doubleLevel - 1);
     this.shield = false;
   }
 }

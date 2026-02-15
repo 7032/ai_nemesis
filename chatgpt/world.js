@@ -36,6 +36,7 @@ export class World {
     this.bullets = [];   // Bullet / Missile (friendly & enemy)
     this.enemies = [];   // AirEnemy / GroundEnemy / Boss / Moai / RingBullet
     this.particles = [];
+    this.items = [];
     this.startEnding = false; // flag
     this.respawnBoostT = 0;
 
