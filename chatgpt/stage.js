@@ -410,15 +410,24 @@ export class StageTimeline {
       spawnAirWave(2.0, 4, 150, 430, -115);
       spawnCapsule(4.5, 260, 260);
 
-      spawnGround(6.0, [
+      // Mini-Boss (Half HP) - Before ground section
+      offsetSpawn(5.5, () => {
+        const b = new Boss(CONFIG.W + 200, CONFIG.H / 2, 6);
+        b.hp *= 0.5;
+        b._maxHp = b.hp;
+        w.enemies.push(b);
+      });
+
+      // Delayed Ground section
+      spawnGround(15.0, [
         { x: 140, onCeil: false },
         { x: 260, onCeil: true },
         { x: 380, onCeil: false },
       ]);
 
-      // Half length, so jump straight to boss
-      bossApproach(9.0, "CORE RAIL AI");
-      spawnBoss(12.5);
+      // Delayed Main Boss
+      bossApproach(22.0, "CORE RAIL AI");
+      spawnBoss(25.5);
     }
 
     // =====================================================
