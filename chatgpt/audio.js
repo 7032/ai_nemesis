@@ -64,7 +64,6 @@ export class AudioBus {
     };
     const R = 0;
 
-    // Helper to create song object
     const mkSong = (name, tempo, mel, bass, drum) => ({
       name, tempo,
       tracks: [
@@ -74,115 +73,100 @@ export class AudioBus {
       ]
     });
 
-    // Helper to repeat array
     const rep = (arr, n) => Array(n).fill(arr).flat();
+    const trans = (arr, diff) => arr.map(n => (n === 0 ? 0 : n + diff));
 
-    // ------------------------------------------------------
-    // SPACE (Intro) - Minimal
-    // ------------------------------------------------------
+    // SPACE
     const sSp = mkSong("space", 90,
       [N.E4, R, N.B3, R, N.G3, R, N.E3, R],
       [N.E3, R, R, R, N.B2, R, R, R]
     );
     sSp.tracks[0].inst = "sine";
 
-    // ------------------------------------------------------
-    // STAGE 1: Can-Can (Orpheus) - Lively
-    // ------------------------------------------------------
-    const mCan = [
+    // STAGE 1: Can-Can
+    const mCanBase = [
       N.G4, N.G4, N.G4, N.G4, N.E4, N.F4, N.G4, N.A4, N.G4, N.E4, N.E4, R, N.G4, N.E4, N.E4, R,
       N.C5, R, N.C5, R, N.A4, N.B4, N.C5, N.A4, N.G4, R, N.G4, N.A4, N.G4, N.F4, N.E4, N.F4,
       N.G4, R, N.E4, R, N.C4, N.D4, N.E4, N.C4, N.D4, R, N.D4, N.E4, N.D4, N.C4, N.B4, N.C4
     ];
-    const bCan = rep([N.C4, R, N.G3, R], 16);
-    const dCan = rep([1, 0, 1, 0], 16);
+    // Extend: A -> A -> B?
+    const mCan = [...mCanBase, ...mCanBase, ...trans(mCanBase, 5), ...mCanBase];
+    const bCan = rep([N.C4, R, N.G3, R], 64);
+    const dCan = rep([1, 0, 1, 0], 64);
     const sSt1 = mkSong("st1", 170, mCan, bCan, dCan);
 
-    // ------------------------------------------------------
-    // STAGE 2: Eine Kleine Nachtmusik - Elegant
-    // ------------------------------------------------------
-    const mEine = [
-      N.C5, R, N.G4, R, N.C5, R, N.G4, N.C5, N.G4, N.C5, N.G4, N.C5, N.E5, R, R, R, // Da-da-da-da...
+    // STAGE 2: Eine Kleine
+    const mEineA = [
+      N.C5, R, N.G4, R, N.C5, R, N.G4, N.C5, N.G4, N.C5, N.G4, N.C5, N.E5, R, R, R,
       N.F4, R, N.D4, R, N.F4, R, N.D4, N.F4, N.D4, N.F4, N.D4, N.F4, N.G4, R, R, R
     ];
-    const bEine = rep([N.C3, N.G3, N.C3, N.G3], 8);
-    const sSt2 = mkSong("st2", 140, mEine, bEine, rep([1, 0], 32));
+    const mEine = [...mEineA, ...trans(mEineA, 7), ...mEineA, ...trans(mEineA, -5)];
+    const bEine = rep([N.C3, N.G3, N.C3, N.G3], 32);
+    const sSt2 = mkSong("st2", 140, mEine, bEine, rep([1, 0], 128));
 
-    // ------------------------------------------------------
-    // STAGE 3: Beethoven 5th (Fate) - Heavy (Moai)
-    // ------------------------------------------------------
-    const m5th = [
-      R, N.G4, N.G4, N.G4, N.Eb4, R, R, R,
-      R, N.F4, N.F4, N.F4, N.D4, R, R, R
+    // STAGE 3: Beethoven 5th
+    const m5thA = [
+      R, N.G4, N.G4, N.G4, N.Eb4, R, R, R, R, N.F4, N.F4, N.F4, N.D4, R, R, R
     ];
-    const b5th = [
-      R, N.G2, N.G2, N.G2, N.Eb2, R, R, R,
-      R, N.F2, N.F2, N.F2, N.D2, R, R, R
-    ];
-    const sSt3 = mkSong("st3", 110, m5th, b5th, rep([1, 0, 0, 0], 8));
-    sSt3.tracks[0].inst = "square"; // Stronger lead
+    const m5th = [...m5thA, ...trans(m5thA, 2), ...m5thA, ...trans(m5thA, 5)];
+    const b5th = rep([N.C3, N.G2, N.C3, N.G2], 32);
+    const sSt3 = mkSong("st3", 120, m5th, b5th, rep([1, 0, 0, 0], 64));
+    sSt3.tracks[0].inst = "square";
 
-    // ------------------------------------------------------
-    // STAGE 4: Blue Danube - Waltz (Abyss)
-    // ------------------------------------------------------
-    // 3/4 time -> treated as triplets in 4/4 or just simple 3-beat loop?
-    // Let's force 3-beat feel: Boom-cha-cha
-    const mDan = [
-      N.C4, N.C4, N.E4, N.G4, N.G4, N.E5, N.E5, R, N.E5, N.E5, R, // Do... Mi Sol Sol... Mi Mi...
-      N.D5, N.D5, R, N.D5, N.D5, R                                // Re Re...
+    // STAGE 4: Blue Danube
+    const mDanA = [
+      N.C4, N.C4, N.E4, N.G4, N.G4, N.E5, N.E5, R, N.E5, N.E5, R,
+      N.D5, N.D5, R, N.D5, N.D5, R
     ];
-    const bDan = [
-      N.C3, R, R, N.G3, R, R, N.G3, R, R, // Boom cha cha
-      N.C3, R, R, N.G3, R, R, N.G3, R, R
-    ];
-    const sSt4 = mkSong("st4", 160, mDan, bDan, []); // No drum, just waltz
+    const mDan = [...mDanA, ...trans(mDanA, 2), ...trans(mDanA, 4), ...mDanA];
+    const bDan = rep([N.C3, R, R, N.G3, R, R], 32);
+    const sSt4 = mkSong("st4", 160, mDan, bDan, []);
 
-    // ------------------------------------------------------
-    // STAGE 5: Mountain King - Creepy (Tentacle)
-    // ------------------------------------------------------
-    const mKing = [
-      N.B3, N.Cs4, N.D4, N.E4, N.Fs4, N.D4, N.Fs4, R,
-      N.E4, N.C4, N.E4, R, N.D4, N.B3, N.D4, R
+    // STAGE 5: Mountain King
+    const mKingA = [
+      N.B3, N.Cs4, N.D4, N.E4, N.Fs4, N.D4, N.Fs4, R, N.E4, N.C4, N.E4, R, N.D4, N.B3, N.D4, R
     ];
-    const bKing = rep([N.B2, R, N.Fs3, R], 8);
-    const sSt5 = mkSong("st5", 130, mKing, bKing, rep([1, 0, 0, 0], 16));
+    const mKing = [...mKingA, ...trans(mKingA, 2), ...trans(mKingA, 4), ...trans(mKingA, 5), ...mKingA, ...trans(mKingA, 7)];
+    const bKing = rep([N.B2, R, N.Fs3, R], 64);
+    const sSt5 = mkSong("st5", 130, mKing, bKing, rep([1, 0, 0, 0], 128));
     sSt5.tracks[0].inst = "square";
-    sSt5.tracks[1].inst = "sawtooth"; // Gritty bass
+    sSt5.tracks[1].inst = "sawtooth";
 
-    // ------------------------------------------------------
-    // STAGE 6: William Tell - Fast (Core)
-    // ------------------------------------------------------
-    const mTell = [
-      N.B4, N.B4, N.B4, N.B4, N.G4, N.A4, N.B4, N.Cs5, // Dadadada da da da da
+    // STAGE 6: William Tell
+    const mTellA = [
+      N.B4, N.B4, N.B4, N.B4, N.G4, N.A4, N.B4, N.Cs5,
       N.D5, N.D5, N.D5, N.D5, N.B4, N.G4, N.E4, N.D4
     ];
-    const bTell = rep([N.G3, R], 16);
-    const sSt6 = mkSong("st6", 180, mTell, bTell, rep([1, 1, 0, 1], 8));
+    const mTell = [...mTellA, ...mTellA, ...trans(mTellA, 5), ...mTellA];
+    const bTell = rep([N.G3, R], 128);
+    const sSt6 = mkSong("st6", 180, mTell, bTell, rep([1, 1, 0, 1], 64));
 
-    // ------------------------------------------------------
-    // STAGE 7: Ode to Joy - Anthem (Final)
-    // ------------------------------------------------------
-    const mJoy = [
+    // STAGE 7: Ode to Joy
+    const mJoyA = [
       N.E4, N.E4, N.F4, N.G4, N.G4, N.F4, N.E4, N.D4,
       N.C4, N.C4, N.D4, N.E4, N.E4, N.D4, N.D4, R
     ];
-    const bJoy = rep([N.C3, N.G3, N.C3, N.G3], 8);
-    const sSt7 = mkSong("st7", 130, mJoy, bJoy, rep([1, 0, 1, 0], 16));
+    const mJoyB = [
+      N.E4, N.E4, N.F4, N.G4, N.G4, N.F4, N.E4, N.D4,
+      N.C4, N.C4, N.D4, N.E4, N.D4, N.C4, N.C4, R
+    ];
+    // A -> B -> A' -> B'
+    const mJoy = [...mJoyA, ...mJoyB, ...trans(mJoyA, 2), ...trans(mJoyB, 2)];
+    const bJoy = rep([N.C3, N.G3, N.C3, N.G3], 64);
+    const sSt7 = mkSong("st7", 130, mJoy, bJoy, rep([1, 0, 1, 0], 128));
 
-    // ------------------------------------------------------
-    // BOSS: New World (Dvorak) - Climax
-    // ------------------------------------------------------
-    // Aggressive minor part (4th mvt)
-    const mBoss = [
+    // BOSS
+    const mBossA = [
       N.E4, N.F4, N.G4, N.As4, R, N.E4, R, N.D4,
       N.C4, N.E4, R, N.D4, R, N.C4, N.B3, N.C4
     ];
-    const bBoss = rep([N.C2, N.C2], 16);
-    const sBoss = mkSong("boss", 180, mBoss, bBoss, rep([1, 1], 16));
+    const mBoss = [...mBossA, ...trans(mBossA, 2), ...trans(mBossA, -2), ...mBossA];
+    const bBoss = rep([N.C2, N.C2], 64);
+    const sBoss = mkSong("boss", 180, mBoss, bBoss, rep([1, 1], 64));
     sBoss.tracks[0].inst = "sawtooth";
     sBoss.tracks[1].inst = "sawtooth";
 
-    // Ending (Orgel style)
+    // Ending
     const mEnd = [
       ...rep([N.C5, N.G4, N.E4, N.C4], 2),
       ...rep([N.D5, N.B4, N.G4, N.D4], 2),

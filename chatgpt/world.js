@@ -548,15 +548,20 @@ export class World {
         let hit = false;
 
         if (b instanceof Laser) {
-          // Horizontal Segment vs Circle
-          const er = e.r || 18;
-          const distY = Math.abs(e.y - b.y);
-          if (distY <= er + b.r) {
-            // Check X intersection
-            const tail = b.x - b.length;
-            const head = b.x;
-            if (e.x + er > tail && e.x - er < head) {
-              hit = true;
+          // Use custom laser hit check if available (e.g. Tentacle)
+          if (typeof e.checkLaserHit === "function") {
+            hit = e.checkLaserHit(b.x, b.y, b.r);
+          } else {
+            // Horizontal Segment vs Circle
+            const er = e.r || 18;
+            const distY = Math.abs(e.y - b.y);
+            if (distY <= er + b.r) {
+              // Check X intersection
+              const tail = b.x - b.length;
+              const head = b.x;
+              if (e.x + er > tail && e.x - er < head) {
+                hit = true;
+              }
             }
           }
         } else {
