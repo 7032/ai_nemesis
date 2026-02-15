@@ -1,6 +1,7 @@
 import { CONFIG, TAU } from "../config.js";
-import { clamp, lerp, approach0 } from "../utils.js";
+import { clamp, lerp, approach0, rand } from "../utils.js";
 import { Entity } from "./entity.js";
+import { Capsule } from "./capsule.js";
 
 export class Player extends Entity {
   constructor(w) {
@@ -121,6 +122,15 @@ export class Player extends Entity {
     a.noiseBurst(0.12, 0.26);
     a.beep("sawtooth", 120, 0.18, 0.14);
     this.w.camera.shake(16, 0.28);
+
+    // Spawn massive amount of capsules (Recovery chance)
+    for (let i = 0; i < 10; i++) {
+      // Spread them coming from the right
+      const cx = CONFIG.W + rand(60, 500);
+      const cy = rand(40, CONFIG.H - 40);
+      const cap = new Capsule(cx, cy);
+      this.w.items.push(cap);
+    }
 
     for (let i = 0; i < 38; i++) {
       this.w.spawnExplosion(this.x, this.y, 0.6, i % 5 === 0);
