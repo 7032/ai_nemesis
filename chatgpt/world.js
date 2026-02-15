@@ -1037,6 +1037,7 @@ export class World {
   }
   startEnding() {
     // 画面を整理
+    this.isEndingSequence = true;
     this.bullets = [];
     this.enemies = [];
     this.items = [];
