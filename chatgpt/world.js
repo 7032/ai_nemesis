@@ -583,7 +583,7 @@ export class World {
           }
           else if (e instanceof Boss) {
             let dmg = b.dmg;
-            if (b instanceof Laser) dmg *= 0.5; // Double resistance to laser
+            if (b instanceof Laser) dmg *= 0.2; // 5x resistance to laser
             e.takeDamage(dmg, this, b.x, b.y);
           }
           else e.takeDamage?.(b.dmg, this, b.x, b.y);
