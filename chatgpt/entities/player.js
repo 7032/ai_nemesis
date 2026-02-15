@@ -138,28 +138,33 @@ export class Player extends Entity {
     this._wasIdle = false;
   }
 
-  applyLaserTickFrom(x0, y0, dmgMul, power = 1.0) {
+  applyLaserTickFrom(x0, y0, dmgMul, power = 1.0, level = 1) {
     const w = this.w;
     const ramp = clamp(this.laserGrace / CONFIG.LASER.startGrace, 0, 1);
     const dps = CONFIG.LASER.dps * dmgMul * power * (0.35 + 0.65 * ramp);
     const dmg = dps / CONFIG.LASER.tickRate;
 
+    const widthMul = (level >= 2) ? 3.0 : 1.0;
+    const maxLen = (level === 1) ? 450 : 2000; // Lvl 1: Short beam
+
     let hit = false;
 
     for (const e of w.enemies) {
       if (e.dead) continue;
+      // Hitbox X check (Beam is rightward)
+      if (e.x + (e.r || 18) < x0) continue;
+      if (e.x - (e.r || 18) > x0 + maxLen) continue; // Range limit
 
       let isHit = false;
 
       if (typeof e.checkLaserHit === "function") {
-        const lw = CONFIG.LASER.widthCore * 0.6;
+        const lw = CONFIG.LASER.widthCore * 0.6 * widthMul;
         if (e.checkLaserHit(x0, y0, lw)) isHit = true;
       } else {
-        if (e.x + (e.r || 18) >= x0) {
-          const dy = Math.abs(e.y - y0);
-          const rr = (e.r || 18);
-          if (dy <= (CONFIG.LASER.widthCore * 0.6 + rr * 0.7)) isHit = true;
-        }
+        // Circle / Band check
+        const dy = Math.abs(e.y - y0);
+        const rr = (e.r || 18);
+        if (dy <= (CONFIG.LASER.widthCore * 0.6 * widthMul + rr * 0.7)) isHit = true;
       }
 
       if (isHit) {
@@ -243,7 +248,7 @@ export class Player extends Entity {
     const misHeld = inp.down("KeyX") || vHeld;
     const dmgMul = pu.damageMultiplier();
 
-    if (pu.laser) {
+    if (pu.laserLevel > 0) {
       this.laserOn = shotHeld;
       this.laserGrace = lerp(this.laserGrace, this.laserOn ? 1 : 0, 1 - Math.pow(0.0001, dt));
     } else {
@@ -251,7 +256,7 @@ export class Player extends Entity {
       this.laserGrace = 0;
     }
 
-    if (!pu.laser) {
+    if (pu.laserLevel === 0) {
       if (shotHeld) {
         this.shotT -= dt;
         const level = pu.doubleLevel;
@@ -333,28 +338,52 @@ export class Player extends Entity {
       } else this.shotT = 0;
     }
 
-    if (pu.missile && misHeld) {
+    if (pu.missileLevel > 0 && misHeld) {
       this.missileT -= dt;
       if (this.missileT <= 0) {
         let fired = false;
 
+        const sp = 210; // Half speed
+
+        // Helper to fire check
+        const spawnM = (srcId, countFilterId, vx, vy) => {
+          const count = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === countFilterId).length;
+          // Limit check: 2 missiles per "direction slot"? 
+          // Or global? Existing: 4 per source.
+          if (count < 4) {
+            const m = w.spawnMissile(this.x + 10, this.y + 10, vx, vy, CONFIG.MISSILE.dmg * dmgMul);
+            if (m) m.sourceId = srcId;
+            return true;
+          }
+          return false;
+        };
+
         // 1. Main Body
-        const mainCount = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === "main").length;
-        if (mainCount < 4) {
-          const m = w.spawnMissile(this.x + 10, this.y + 10, 1, CONFIG.MISSILE.dmg * dmgMul);
-          if (m) m.sourceId = "main";
-          fired = true;
+        // Down
+        if (spawnM("main", "main", sp, 120)) fired = true;
+        // Up (Lvl 2)
+        if (pu.missileLevel >= 2) {
+          if (spawnM("main_u", "main_u", sp, -120)) fired = true;
         }
 
         // 2. Options
         for (let i = 0; i < pu.optionCount; i++) {
           const srcId = "opt" + i;
-          const optCount = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === srcId).length;
-          if (optCount < 4) {
-            const op = this.getOptionPos(i, pu);
-            const m = w.spawnMissile(op.x, op.y + 10, 1, CONFIG.MISSILE.dmg * dmgMul);
-            if (m) m.sourceId = srcId;
-            fired = true;
+          const op = this.getOptionPos(i, pu);
+
+          const spawnMO = (sId, cId, vx, vy) => {
+            const count = w.bullets.filter(b => b.owner === "player" && b.kind === "missile" && b.sourceId === cId).length;
+            if (count < 4) {
+              const m = w.spawnMissile(op.x, op.y + 10, vx, vy, CONFIG.MISSILE.dmg * dmgMul);
+              if (m) m.sourceId = sId;
+              return true;
+            }
+            return false;
+          };
+
+          if (spawnMO(srcId, srcId, sp, 120)) fired = true;
+          if (pu.missileLevel >= 2) {
+            if (spawnMO(srcId + "_u", srcId + "_u", sp, -120)) fired = true;
           }
         }
 
@@ -362,7 +391,6 @@ export class Player extends Entity {
           this.missileT = 1.0 / CONFIG.MISSILE.rate;
           w.audio.beep("square", 280, 0.03, 0.04);
         } else {
-          // Blocked by limits, wait
           this.missileT = 0;
         }
       }
@@ -371,7 +399,7 @@ export class Player extends Entity {
     // Option fire logic moved to sync with main shot
     // (Laser options are handled in applyLaserTickFrom)
 
-    if (pu.laser && this.laserGrace > 0.02) {
+    if (pu.laserLevel > 0 && this.laserGrace > 0.02) {
       this._laserTickAcc += dt;
       const tick = 1 / CONFIG.LASER.tickRate;
 
@@ -379,13 +407,13 @@ export class Player extends Entity {
         this._laserTickAcc -= tick;
 
         // 自機レーザー
-        this.applyLaserTickFrom(this.x + 18, this.y, dmgMul, 1.0);
+        this.applyLaserTickFrom(this.x + 18, this.y, dmgMul, 1.0, pu.laserLevel);
 
         // オプションレーザー（少し弱め）
         if (pu.optionCount > 0 && (w.input.down("KeyZ") || w.input.down("Space"))) {
           for (let i = 0; i < pu.optionCount; i++) {
             const op = this.getOptionPos(i, pu);
-            this.applyLaserTickFrom(op.x + 14, op.y, dmgMul, 0.55);
+            this.applyLaserTickFrom(op.x + 14, op.y, dmgMul, 0.55, pu.laserLevel);
           }
         }
       }
@@ -455,21 +483,25 @@ export class Player extends Entity {
 
     g.restore();
 
-    if (pu.laser && this.laserGrace > 0.02) {
+    if (pu.laserLevel > 0 && this.laserGrace > 0.02) {
+      const level = pu.laserLevel;
+      const wMul = (level >= 2) ? 3.0 : 1.0;
+      const maxLen = (level === 1) ? 450 : CONFIG.W + 200;
+
       const drawBeam = (sx, sy, power = 1.0) => {
         g.save();
         g.globalAlpha = (0.18 + 0.52 * this.laserGrace) * power;
         g.strokeStyle = "rgba(120,230,255,1)";
-        g.lineWidth = CONFIG.LASER.widthGlow * (0.9 + 0.2 * power);
+        g.lineWidth = CONFIG.LASER.widthGlow * (0.9 + 0.2 * power) * wMul;
         g.shadowColor = "rgba(120,230,255,.8)";
         g.shadowBlur = 22;
-        g.beginPath(); g.moveTo(sx, sy); g.lineTo(CONFIG.W + 200, sy); g.stroke();
+        g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + maxLen, sy); g.stroke();
 
         g.globalAlpha = (0.85 * this.laserGrace) * power;
         g.shadowBlur = 0;
         g.strokeStyle = "rgba(190,250,255,1)";
-        g.lineWidth = CONFIG.LASER.widthCore * (0.9 + 0.2 * power);
-        g.beginPath(); g.moveTo(sx, sy); g.lineTo(CONFIG.W + 200, sy); g.stroke();
+        g.lineWidth = CONFIG.LASER.widthCore * (0.9 + 0.2 * power) * wMul;
+        g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + maxLen, sy); g.stroke();
         g.restore();
       };
 
