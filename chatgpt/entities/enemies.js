@@ -3,6 +3,7 @@ import { CONFIG, TAU } from "../config.js";
 import { clamp, lerp, rand } from "../utils.js";
 import { Entity } from "./entity.js";
 import { Particle } from "../particles.js";
+import { Tentacle } from "./tentacle.js";
 
 function fireMul(w) {
   return (w && typeof w.enemyFireMul === "function") ? w.enemyFireMul() : 1.0;
@@ -451,18 +452,68 @@ export class Boss extends Entity {
       return;
     }
 
-    // Stage 7 special movement (Vertical Sine)
+    // Stage 7 special movement (Vertical Sine) + Rage Modes
     if (w.stageIndex === 7) {
-      // 1. Movement: Full screen sine wave (Center 270, Amp 230)
-      this.y = 270 + Math.sin(w.time * 0.6 + this.movePhase) * 230;
+      const bosses = w.enemies.filter(e => e.isBoss && !e.dead);
+      const count = bosses.length;
 
-      // 2. Attack logic based on survival count
+      // Initialize Final Form (Tentacles) if last one
+      if (count === 1 && !this.hasTentacles) {
+        this.hasTentacles = true;
+        // Spawn Tentacles
+        const t1 = new Tentacle(this.x, this.y - 40, true, 10); // Upper
+        const t2 = new Tentacle(this.x, this.y + 40, false, 10); // Lower
+        w.enemies.push(t1, t2);
+        this.tentacles = [t1, t2];
+        w.audio.beep("noise", 200, 0.5, 0.5);
+      }
+
+      // Sync Tentacles
+      if (this.tentacles) {
+        this.tentacles.forEach((t, i) => {
+          if (!t.dead) {
+            t.x = this.x - 20;
+            t.y = this.y + (i === 0 ? -50 : 50);
+            t.isCeil = (i === 0);
+          }
+        });
+      }
+
+      // Movement Logic
+      if (count === 1) {
+        // Final Form Movement: Charge
+        this.chargeTimer = (this.chargeTimer || 0) - dt;
+        if (this.chargeMode === "return") {
+          this.x += 400 * dt;
+          if (this.x > CONFIG.W - 200) {
+            this.x = CONFIG.W - 200;
+            this.chargeMode = "hover";
+            this.chargeTimer = 3.0; // Wait before next charge
+          }
+          this.y = lerp(this.y, CONFIG.H / 2, 0.1);
+        } else if (this.chargeMode === "attack") {
+          this.x -= 600 * dt; // Fast charge left
+          if (this.x < 100) {
+            this.chargeMode = "return";
+          }
+        } else {
+          // Hover
+          this.y = 270 + Math.sin(w.time * 2.0) * 100;
+          if (this.chargeTimer <= 0) {
+            this.chargeMode = "attack";
+            w.audio.beep("noise", 100, 0.5, 0.4);
+          }
+        }
+      } else {
+        // Normal/Rage1 Movement
+        if (this.state !== "enter") {
+          this.y = 270 + Math.sin(w.time * 0.6 + this.movePhase) * 230;
+        }
+      }
+
+      // Attack logic
       this.fireTimer -= dt;
-      if (this.fireTimer <= 0) {
-        const bosses = w.enemies.filter(e => e.isBoss && !e.dead);
-        const count = bosses.length;
-
-        // Default constraints (3 survivors)
+      if (this.fireTimer <= 0 && this.state !== "enter") {
         let shotCount = 5;
         let interval = 2.0;
         let speed = 180;
@@ -471,22 +522,31 @@ export class Boss extends Entity {
           shotCount = 10;
           interval = 1.6;
         } else if (count <= 1) {
-          shotCount = 20;
-          interval = 0.8; // Burst mode
-          speed = 220;
+          shotCount = 24;
+          interval = 0.5; // Intense
+          speed = 240;
         }
+
+        if (this.chargeMode === "attack") interval = 0.2; // Spam during charge
 
         this.fireTimer = interval;
 
-        // Fire Ring Bullets
-        w.audio.beep("triangle", 600, 0.05, 0.1);
-        for (let i = 0; i < shotCount; i++) {
-          const angle = (i / shotCount) * Math.PI * 2 + w.time;
-          w.spawnRingBullet(this.x - 20, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+        // Ring Bullets
+        if (this.chargeMode !== "attack") { // Don't fire ring during charge
+          w.audio.beep("triangle", 600, 0.05, 0.1);
+          for (let i = 0; i < shotCount; i++) {
+            const angle = (i / shotCount) * Math.PI * 2 + w.time;
+            w.spawnRingBullet(this.x - 20, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+          }
+        }
 
-          // Rage Mode (Last one): Fire normal bullets too
-          if (count <= 1) {
-            w.spawnBullet(this.x - 20, this.y, Math.cos(angle) * speed * 1.2, Math.sin(angle) * speed * 1.2, 4, 1, false, "round");
+        // Rage Mode (2 or 1): Fire Radial Normal Bullets
+        if (count <= 2) {
+          const n = (count === 1) ? 16 : 12;
+          w.audio.beep("triangle", 250, 0.05, 0.05);
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + w.time * -2;
+            w.spawnBullet(this.x, this.y, Math.cos(a) * speed, Math.sin(a) * speed, 4, 1, false, "round");
           }
         }
       }
@@ -495,16 +555,24 @@ export class Boss extends Entity {
       if (this.hitFlashT > 0) this.hitFlashT -= dt;
 
       // Entry logic
-      this.x += this.vx * dt;
-      if (this.state === "enter" && this.x < CONFIG.W - 150) {
-        this.vx = 0;
-        this.state = "fight";
+      if (this.state === "enter") {
+        this.x += this.vx * dt;
+        if (this.x < CONFIG.W - 150) {
+          this.vx = 0;
+          this.state = "fight";
+        }
+        this.y = lerp(this.y, CONFIG.H / 2, 1 - Math.pow(0.0001, dt));
+        return;
       }
 
-      // Death check (IMPORTANT: Must be before return)
+      // Death check
       if (this.hp <= 0) {
         this.dead = true;
         w.onBossKilled(this);
+        // Kill attached tentacles
+        if (this.tentacles) {
+          this.tentacles.forEach(t => t.killAll(w));
+        }
       }
       return;
     }
