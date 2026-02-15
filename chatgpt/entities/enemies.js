@@ -76,52 +76,47 @@ export class AirEnemy extends Entity {
     const floor = w.terrain.floorAt(this.x);
     this.y = clamp(this.y, ceil + 30, floor - 30);
 
-    // ---- Shooting (baseMin/baseMax are ALWAYS defined here) ----
+    // ---- Shooting ----
     this._shootT -= dt;
     if (this._shootT <= 0) {
-      const early = (w.stageIndex === 1 && w.stageTime < CONFIG.STAGE.earlyNoFireTime);
-      const fireChance = early ? CONFIG.STAGE.earlyFireChanceMul : 0.65;
+      if (this.x < CONFIG.W - 10 && this.x > 10) {
 
-      // ★必ず定義（ここが無いと "baseMin baseMax が無い"）
-      // Wait ~3s as requested
-      const baseMin = early ? 3.5 : 2.8;
-      const baseMax = early ? 5.0 : 3.4;
+        // Buffed fire rate: Base ~1.0s
+        let resetTime = rand(0.7, 1.4);
 
-      // hardLoop: fireMul < 1 => 次が早い（=頻繁）
-      this._shootT = rand(baseMin, baseMax) * fireMul(w);
-
-      // 序盤は控えめ
-      if (Math.random() > fireChance) return;
-
-      const p = w.player;
-      if (p && p.canBeHit()) {
-        const isDynamic = (this.formationId || this.behavior === 'return' || this.pattern === 1);
-
-        if (isDynamic) {
-          // 動きが激しい: 近い時や通り過ぎる時に撃つ
-          const dx = p.x - this.x;
-          const dy = p.y - this.y;
-          if (Math.abs(dx) < 250) { // Near or passing
-            const len = Math.hypot(dx, dy) || 1;
-            const sp = CONFIG.ENEMY.bulletSpeed * 1.2; // Faster
-            w.spawnBullet(this.x - 10, this.y, (dx / len) * sp, (dy / len) * sp, 4, 1, false, "needle");
-            // Double shot (slightly offset speed)
-            w.spawnBullet(this.x - 10, this.y, (dx / len) * (sp * 0.9), (dy / len) * (sp * 0.9), 4, 1, false, "needle");
-            w.audio.beep("triangle", 240, 0.05, 0.04);
-          }
-        } else {
-          // 動きが小さい: 多めに吐く (5-way, wait ~3s)
-          const dx = p.x - this.x;
-          const dy = p.y - this.y;
-          const baseAng = Math.atan2(dy, dx);
-          const sp = CONFIG.ENEMY.bulletSpeed * 0.9;
-
-          for (let i = -2; i <= 2; i++) {
-            const a = baseAng + i * 0.20;
-            w.spawnBullet(this.x - 10, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "needle");
-          }
-          w.audio.beep("triangle", 220, 0.05, 0.05);
+        // Loop 2+ (loopCount >= 1): 3x faster
+        if (w.loopCount >= 1) {
+          resetTime /= 3.0;
         }
+
+        // Formation nerf (1/4 rate)
+        if (this.formationId) {
+          resetTime *= 4.0;
+        }
+
+        // Apply fireMul (general difficulty scaler)
+        this._shootT = resetTime * fireMul(w);
+
+        const p = w.player;
+        if (p && p.canBeHit()) {
+          const dx = p.x - this.x;
+          const dy = p.y - this.y;
+
+          // Simple Aim Shot
+          const len = Math.hypot(dx, dy) || 1;
+          const sp = CONFIG.ENEMY.bulletSpeed;
+          w.spawnBullet(this.x - 10, this.y, (dx / len) * sp, (dy / len) * sp, 4, 1, false, "needle");
+
+          // Extra shot for high difficulty (Loop 2+)
+          if (w.loopCount >= 1) {
+            w.spawnBullet(this.x - 10, this.y, (dx / len) * sp * 0.8, (dy / len) * sp * 0.8, 4, 1, false, "needle");
+          }
+
+          w.audio.beep("triangle", 240, 0.05, 0.04);
+        }
+      } else {
+        // Off-screen, just wait a bit
+        this._shootT = 0.5;
       }
     }
   }
