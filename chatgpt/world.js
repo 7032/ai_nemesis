@@ -193,6 +193,15 @@ export class World {
     return m;
   }
 
+  spawnLaser(x, y, level, sourceId) {
+    const sp = CONFIG.SHOT.speed * 2.0;
+    const l = new Laser(x, y, sp, level, sourceId);
+    l.owner = "player";
+    l.penetrate = true;
+    this.bullets.push(l);
+    return l;
+  }
+
   // If you want to spawn ring bullets from anywhere:
   spawnRingBullet(x, y, vx, vy) {
     this.enemies.push(new RingBullet(x, y, vx, vy));
@@ -530,24 +539,37 @@ export class World {
         if (e instanceof RingBullet) continue;
 
         let hit = false;
-        // Custom collision check?
-        if (typeof e.checkHit === "function") {
-          hit = e.checkHit(b.x, b.y, b.r);
+
+        if (b instanceof Laser) {
+          // Horizontal Segment vs Circle
+          const er = e.r || 18;
+          const distY = Math.abs(e.y - b.y);
+          if (distY <= er + b.r) {
+            // Check X intersection
+            const tail = b.x - b.length;
+            const head = b.x;
+            if (e.x + er > tail && e.x - er < head) {
+              hit = true;
+            }
+          }
         } else {
           // Standard circle
-          const er = e.r || 18;
-          const dx = e.x - b.x,
-            dy = e.y - b.y;
-          hit = dx * dx + dy * dy <= (er + b.r) * (er + b.r);
+          if (typeof e.checkHit === "function") {
+            hit = e.checkHit(b.x, b.y, b.r);
+          } else {
+            const er = e.r || 18;
+            const dx = e.x - b.x, dy = e.y - b.y;
+            hit = dx * dx + dy * dy <= (er + b.r) * (er + b.r);
+          }
         }
 
         if (hit) {
-          b.dead = true;
+          if (!b.penetrate) b.dead = true;
 
           if (e instanceof Boss) e.takeDamage(b.dmg, this, b.x, b.y);
           else e.takeDamage?.(b.dmg, this, b.x, b.y);
 
-          break;
+          if (!b.penetrate) break;
         }
       }
     }

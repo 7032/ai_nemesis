@@ -20,10 +20,7 @@ export class Player extends Entity {
     this.shotT = 0;
     this.missileT = 0;
 
-    this.laserOn = false;
-    this.laserGrace = 0;
-    this._laserHitStopCooldown = 0;
-    this._laserTickAcc = 0;
+    this.missileT = 0;
 
     this.path = [];
     this.pathMax = 3600;
@@ -144,53 +141,7 @@ export class Player extends Entity {
     this._wasIdle = false;
   }
 
-  applyLaserTickFrom(x0, y0, dmgMul, power = 1.0, level = 1) {
-    const w = this.w;
-    const ramp = clamp(this.laserGrace / CONFIG.LASER.startGrace, 0, 1);
-    const dps = CONFIG.LASER.dps * dmgMul * power * (0.35 + 0.65 * ramp);
-    const dmg = dps / CONFIG.LASER.tickRate;
-
-    const widthMul = (level >= 2) ? 3.0 : 1.0;
-    const maxLen = (level === 1) ? 450 : 2000; // Lvl 1: Short beam
-
-    let hit = false;
-
-    for (const e of w.enemies) {
-      if (e.dead) continue;
-      // Hitbox X check (Beam is rightward)
-      if (e.x + (e.r || 18) < x0) continue;
-      if (e.x - (e.r || 18) > x0 + maxLen) continue; // Range limit
-
-      let isHit = false;
-
-      if (typeof e.checkLaserHit === "function") {
-        const lw = CONFIG.LASER.widthCore * 0.6 * widthMul;
-        if (e.checkLaserHit(x0, y0, lw)) isHit = true;
-      } else {
-        // Circle / Band check
-        const dy = Math.abs(e.y - y0);
-        const rr = (e.r || 18);
-        if (dy <= (CONFIG.LASER.widthCore * 0.6 * widthMul + rr * 0.7)) isHit = true;
-      }
-
-      if (isHit) {
-        hit = true;
-        if (typeof e.takeLaserDamage === "function") {
-          e.takeLaserDamage(dmg, w);
-        } else if (typeof e.takeDamage === "function" && e.takeDamage.length >= 3) {
-          e.isBoss = true;
-          e.takeDamage(dmg, w, e.x - 40, y0);
-        } else {
-          e.takeDamage?.(dmg, w);
-        }
-      }
-    }
-
-    if (hit && this._laserHitStopCooldown <= 0) {
-      this._laserHitStopCooldown = 0.18;
-      w.hitStopMs = Math.max(w.hitStopMs, CONFIG.LASER.hitStopMs);
-    }
-  }
+  // applyLaserTickFrom removed
 
   update(dt, w) {
     if (this.respawnPending) {
@@ -254,12 +205,26 @@ export class Player extends Entity {
     const misHeld = inp.down("KeyX") || vHeld;
     const dmgMul = pu.damageMultiplier();
 
-    if (pu.laserLevel > 0) {
-      this.laserOn = shotHeld;
-      this.laserGrace = lerp(this.laserGrace, this.laserOn ? 1 : 0, 1 - Math.pow(0.0001, dt));
-    } else {
-      this.laserOn = false;
-      this.laserGrace = 0;
+    if (pu.laserLevel > 0 && shotHeld) {
+      // Laser Fire Logic (Projectile)
+      // 1. Main
+      const mainCount = w.bullets.filter(b => b.kind === "laser" && b.sourceId === "main").length;
+      if (mainCount === 0) {
+        w.spawnLaser(this.x + 18, this.y, pu.laserLevel, "main");
+        w.audio.beep("square", 880, 0.08, 0.2);
+      }
+
+      // 2. Options
+      if (pu.optionCount > 0) {
+        for (let i = 0; i < pu.optionCount; i++) {
+          const srcId = "opt" + i;
+          const cnt = w.bullets.filter(b => b.kind === "laser" && b.sourceId === srcId).length;
+          if (cnt === 0) {
+            const op = this.getOptionPos(i, pu);
+            w.spawnLaser(op.x + 14, op.y, pu.laserLevel, srcId);
+          }
+        }
+      }
     }
 
     if (pu.laserLevel === 0) {
@@ -412,27 +377,10 @@ export class Player extends Entity {
     // Option fire logic moved to sync with main shot
     // (Laser options are handled in applyLaserTickFrom)
 
-    if (pu.laserLevel > 0 && this.laserGrace > 0.02) {
-      this._laserTickAcc += dt;
-      const tick = 1 / CONFIG.LASER.tickRate;
+    // Option fire logic moved to sync with main shot
+    // (Laser options are handled above)
 
-      while (this._laserTickAcc >= tick) {
-        this._laserTickAcc -= tick;
-
-        // 自機レーザー
-        this.applyLaserTickFrom(this.x + 18, this.y, dmgMul, 1.0, pu.laserLevel);
-
-        // オプションレーザー（少し弱め）
-        if (pu.optionCount > 0 && (w.input.down("KeyZ") || w.input.down("Space"))) {
-          for (let i = 0; i < pu.optionCount; i++) {
-            const op = this.getOptionPos(i, pu);
-            this.applyLaserTickFrom(op.x + 14, op.y, dmgMul, 0.55, pu.laserLevel);
-          }
-        }
-      }
-    } else {
-      this._laserTickAcc = 0;
-    }
+    // Old laser tick logic removed
   }
 
   draw(g, w) {
@@ -504,38 +452,18 @@ export class Player extends Entity {
 
     g.restore();
 
-    if (pu.laserLevel > 0 && this.laserGrace > 0.02) {
-      const level = pu.laserLevel;
-      const wMul = (level >= 2) ? 3.0 : 1.0;
-      const maxLen = (level === 1) ? 450 : CONFIG.W + 200;
+    // Draw laser moved to Laser class
 
-      const drawBeam = (sx, sy, power = 1.0) => {
-        g.save();
-        g.globalAlpha = (0.18 + 0.52 * this.laserGrace) * power;
-        g.strokeStyle = "rgba(120,230,255,1)";
-        g.lineWidth = CONFIG.LASER.widthGlow * (0.9 + 0.2 * power) * wMul;
-        g.shadowColor = "rgba(120,230,255,.8)";
-        g.shadowBlur = 22;
-        g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + maxLen, sy); g.stroke();
+    // 自機
+    drawBeam(this.x + 18, this.y, 1.0);
 
-        g.globalAlpha = (0.85 * this.laserGrace) * power;
-        g.shadowBlur = 0;
-        g.strokeStyle = "rgba(190,250,255,1)";
-        g.lineWidth = CONFIG.LASER.widthCore * (0.9 + 0.2 * power) * wMul;
-        g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + maxLen, sy); g.stroke();
-        g.restore();
-      };
-
-      // 自機
-      drawBeam(this.x + 18, this.y, 1.0);
-
-      // オプション（弱めの光量）
-      if (pu.optionCount > 0) {
-        for (let i = 0; i < pu.optionCount; i++) {
-          const op = this.getOptionPos(i, pu);
-          drawBeam(op.x + 14, op.y, 0.55);
-        }
+    // オプション（弱めの光量）
+    if (pu.optionCount > 0) {
+      for (let i = 0; i < pu.optionCount; i++) {
+        const op = this.getOptionPos(i, pu);
+        drawBeam(op.x + 14, op.y, 0.55);
       }
     }
   }
+}
 }
