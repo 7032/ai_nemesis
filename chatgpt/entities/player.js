@@ -242,14 +242,16 @@ export class Player extends Entity {
 
     if (!pu.laser) {
       if (shotHeld) {
-        // Limit: 6 bullets on screen
-        const totalShots = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile").length;
-        const nextCount = pu.double ? 2 : 1;
-        if (totalShots + nextCount <= 6) {
-          this.shotT -= dt;
-          const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
-          if (this.shotT <= 0) {
-            this.shotT += 1 / rate;
+        this.shotT -= dt;
+        const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
+
+        if (this.shotT <= 0) {
+          // Limit: 6 bullets on screen
+          const totalShots = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile").length;
+          const nextCount = pu.double ? 2 : 1;
+
+          if (totalShots + nextCount <= 6) {
+            this.shotT = 1 / rate; // Strict interval reset
             if (pu.double) {
               w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
               const a = -Math.PI / 4;
@@ -258,6 +260,25 @@ export class Player extends Entity {
               w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
             }
             w.audio.beep("square", 520, 0.02, 0.03);
+
+            // Sync Option Fire
+            if (pu.optionCount > 0) {
+              for (let i = 0; i < pu.optionCount; i++) {
+                const op = this.getOptionPos(i, pu);
+                if (pu.double) {
+                  w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
+                  const a = -Math.PI / 4;
+                  w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
+                } else {
+                  w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
+                }
+              }
+            }
+          } else {
+            // Blocked by limit: Keep shotT at 0 (ready) or wait? 
+            // If we want to prevent machinegun, we should maybe NOT reset shotT? 
+            // Just let it stay <= 0. Next frame checks limit again.
+            // This corresponds to "Fastest possible fire under limit".
           }
         }
       } else this.shotT = 0;
@@ -298,26 +319,8 @@ export class Player extends Entity {
       }
     } else this.missileT = 0;
 
-    if (pu.optionCount > 0 && shotHeld) {
-      const fireMul = (pu.overT > 0) ? 1.25 : 1.0;
-      w.optionFireAcc += dt * fireMul;
-      const step = pu.laser ? 1 / 18 : 1 / 12;
-      if (w.optionFireAcc >= step) {
-        w.optionFireAcc = 0;
-        for (let i = 0; i < pu.optionCount; i++) {
-          const op = this.getOptionPos(i, pu);
-          if (pu.laser) {
-            // Laser only (handled by applyLaserTickFrom), do not fire normal bullets
-          } else if (pu.double) {
-            w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
-            const a = -Math.PI / 4;
-            w.spawnBullet(op.x + 12, op.y, Math.cos(a) * 640, Math.sin(a) * 640, 2.5, 0.55 * dmgMul, true, "needle");
-          } else {
-            w.spawnBullet(op.x + 14, op.y, 680, 0, 2.5, 0.55 * dmgMul, true, "round");
-          }
-        }
-      }
-    } else w.optionFireAcc = 0;
+    // Option fire logic moved to sync with main shot
+    // (Laser options are handled in applyLaserTickFrom)
 
     if (pu.laser && this.laserGrace > 0.02) {
       this._laserTickAcc += dt;

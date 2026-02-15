@@ -6,6 +6,7 @@ export class Bullet extends Entity {
     super();
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
     this.r = r; this.dmg = dmg; this.friendly = friendly; this.kind = kind;
+    this.owner = friendly ? "player" : "enemy";
   }
   update(dt) {
     this.x += this.vx * dt;

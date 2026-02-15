@@ -124,6 +124,7 @@ export class World {
   }
 
   spawnExplosion(x, y, life = 0.6, big = false) {
+    if (this.ending && this.ending.phase !== "escape") return; // Stop explosions during credits
     this.particles.push(
       new Particle(
         x + rand(-10, 10),
@@ -139,18 +140,18 @@ export class World {
   // -----------------------------
   // Spawners
   // -----------------------------
-  spawnBullet(x, y, vx, vy, r, dmg, friendly, kind) {
+  spawnBullet(x, y, vx, vy, r, dmg, isPlayer, kind) {
     const ceil = this.terrain.ceilingAt(x);
     const floor = this.terrain.floorAt(x);
     if (y <= ceil + 4 || y >= floor - 4) return;
 
-    if (!friendly) {
+    if (!isPlayer) {
       const m = this.enemyBulletMul();
       vx *= m;
       vy *= m;
     }
 
-    this.bullets.push(new Bullet(x, y, vx, vy, r, dmg, friendly, kind));
+    this.bullets.push(new Bullet(x, y, vx, vy, r, dmg, isPlayer, kind));
   }
 
   spawnMissile(x, y, dir, dmg) {
