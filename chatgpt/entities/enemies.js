@@ -488,7 +488,7 @@ export class Boss extends Entity {
           if (this.x > CONFIG.W - 200) {
             this.x = CONFIG.W - 200;
             this.chargeMode = "hover";
-            this.chargeTimer = 3.0; // Wait before next charge
+            this.chargeTimer = 9.0; // Wait before next charge (Extended)
           }
           this.y = lerp(this.y, CONFIG.H / 2, 0.1);
         } else if (this.chargeMode === "attack") {

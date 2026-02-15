@@ -584,8 +584,8 @@ export class World {
           else if (e instanceof Boss) {
             let dmg = b.dmg;
             if (b instanceof Laser) {
-              // Stage 7: 3x res, Others: 5x res
-              const mul = (this.stageIndex === 7) ? 0.33 : 0.2;
+              // Stage 7: 20x res (0.05), Others: 5x res (0.2)
+              const mul = (this.stageIndex === 7) ? 0.05 : 0.2;
               dmg *= mul;
             }
             e.takeDamage(dmg, this, b.x, b.y);
