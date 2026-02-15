@@ -410,10 +410,10 @@ export class StageTimeline {
       spawnAirWave(2.0, 4, 150, 430, -115);
       spawnCapsule(4.5, 260, 260);
 
-      // Mini-Boss (Half HP) - Before ground section
+      // Mini-Boss (Weak) - Before ground section
       offsetSpawn(5.5, () => {
         const b = new Boss(CONFIG.W + 200, CONFIG.H / 2, 6);
-        b.hp *= 0.5;
+        b.hp *= 0.15; // Very weak
         b._maxHp = b.hp;
         w.enemies.push(b);
       });
@@ -424,6 +424,18 @@ export class StageTimeline {
         { x: 260, onCeil: true },
         { x: 380, onCeil: false },
       ]);
+
+      // Cleanup Mini-Boss (Self-destruct) if still alive
+      offsetSpawn(21.0, () => {
+        w.enemies.forEach(e => {
+          if (e.isBoss && !e.dead) {
+            e.hp = 0;
+            e.dead = true;
+            w.spawnExplosion(e.x, e.y, 0.8);
+            w.onBossKilled(e);
+          }
+        });
+      });
 
       // Delayed Main Boss
       bossApproach(22.0, "CORE RAIL AI");

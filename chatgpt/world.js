@@ -286,6 +286,12 @@ export class World {
 
     // stage6 logic: Boss Rush (3 times)
     if (this.stageIndex === 6) {
+      if (b.isMiniBoss) {
+        this.player.addScore(10000);
+        this.spawnExplosion(b.x, b.y, 1.0);
+        return; // Do not trigger revive
+      }
+
       this.stage6BossCount++;
       if (this.stage6BossCount < 3) {
         this.player.addScore(50000);
@@ -567,7 +573,14 @@ export class World {
         if (hit) {
           if (!b.penetrate) b.dead = true;
 
-          if (e instanceof Boss) e.takeDamage(b.dmg, this, b.x, b.y);
+          if (b instanceof Laser && typeof e.takeLaserDamage === "function") {
+            e.takeLaserDamage(b.dmg, this, b);
+          }
+          else if (e instanceof Boss) {
+            let dmg = b.dmg;
+            if (b instanceof Laser) dmg *= 0.5; // Double resistance to laser
+            e.takeDamage(dmg, this, b.x, b.y);
+          }
           else e.takeDamage?.(b.dmg, this, b.x, b.y);
 
           if (!b.penetrate) break;
@@ -910,7 +923,7 @@ export class World {
       rx,
       44
     );
-    g.fillText(`FORM:${["FOLLOW", "SPREAD", "LINE"][pu.formation]}`, rx, 66);
+
 
     // banner
     if (this.banner) {

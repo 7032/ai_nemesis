@@ -32,7 +32,8 @@ export class Laser extends Entity {
     // Length
     // Lvl 1: 50% W = 480
     // Lvl 2: 80% W = 768
-    this.length = (level >= 2) ? (CONFIG.W * 0.8) : (CONFIG.W * 0.5);
+    this.maxLength = (level >= 2) ? (CONFIG.W * 0.8) : (CONFIG.W * 0.5);
+    this.length = 0; // Start small and grow
 
     // Thickness
     // Lvl 2: 3x Thickness
@@ -44,6 +45,11 @@ export class Laser extends Entity {
 
   update(dt) {
     this.x += this.vx * dt;
+    // Grow tail
+    if (this.length < this.maxLength) {
+      this.length += this.vx * dt;
+      if (this.length > this.maxLength) this.length = this.maxLength;
+    }
   }
 
   outOfBounds() {

@@ -16,6 +16,7 @@ export class Tentacle extends Entity {
     this.swayOffset = rand(0, 10);
 
     this.fireTimer = rand(1.0, 2.5); // Faster fire start
+    this.laserHitFrames = 0;
 
     // Create segments
     for (let i = 0; i < length; i++) {
@@ -50,26 +51,64 @@ export class Tentacle extends Entity {
     return false;
   }
 
-  takeLaserDamage(dmg, w) {
+  killAll(w) {
     if (this.dead) return;
-
-    this.laserHp -= dmg;
-    if (Math.random() < 0.3) {
-      // Feedback sound
-      w.audio.beep("noise", 200, 0.05, 0.05);
-    }
-
-    if (this.laserHp > 0) return;
-
     this.dead = true;
     w.audio.beep("noise", 100, 0.2, 0.4);
-    w.onEnemyKilled({ score: 800, x: this.segments[0].x, y: this.segments[0].y, formationId: null });
+    w.onEnemyKilled({ score: 2000, x: this.segments[0].x, y: this.segments[0].y, formationId: null });
 
     for (const seg of this.segments) {
       if (!seg.dead) {
         seg.dead = true;
         w.spawnExplosion(seg.x, seg.y, 0.4);
       }
+    }
+  }
+
+  takeLaserDamage(dmg, w, laser) {
+    const lx = laser.x;
+    const tail = lx - laser.length;
+    const ly = laser.y;
+    const lr = laser.r;
+
+    let anyHit = false;
+
+    for (let i = 0; i < this.segments.length; i++) {
+      const seg = this.segments[i];
+      if (seg.dead) continue;
+
+      // Check collision with Laser Rect
+      const dy = Math.abs(seg.y - ly);
+      if (dy < seg.r + lr) {
+        if (seg.x + seg.r > tail && seg.x - seg.r < lx) {
+          // Hit
+          anyHit = true;
+          seg.hp -= dmg;
+
+          if (seg.hp <= 0) {
+            seg.dead = true;
+            w.spawnExplosion(seg.x, seg.y, 0.4);
+            w.onEnemyKilled({ score: 100, x: seg.x, y: seg.y, formationId: null });
+
+            // Break outer segments
+            for (let k = i + 1; k < this.segments.length; k++) {
+              if (!this.segments[k].dead) {
+                this.segments[k].dead = true;
+                w.spawnExplosion(this.segments[k].x, this.segments[k].y, 0.3);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (anyHit) {
+      this.laserHitFrames++;
+      if (this.laserHitFrames > 120) { // 1 sec at 120fps
+        this.killAll(w);
+      }
+      // Feedback sound
+      if (w.time % 0.1 < 0.02) w.audio.beep("sawtooth", 500, 0.03, 0.03);
     }
   }
 
