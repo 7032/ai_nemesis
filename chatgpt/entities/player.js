@@ -451,19 +451,5 @@ export class Player extends Entity {
     g.closePath(); g.fill();
 
     g.restore();
-
-    // Draw laser moved to Laser class
-
-    // 自機
-    drawBeam(this.x + 18, this.y, 1.0);
-
-    // オプション（弱めの光量）
-    if (pu.optionCount > 0) {
-      for (let i = 0; i < pu.optionCount; i++) {
-        const op = this.getOptionPos(i, pu);
-        drawBeam(op.x + 14, op.y, 0.55);
-      }
-    }
   }
-}
 }
