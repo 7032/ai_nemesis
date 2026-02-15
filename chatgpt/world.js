@@ -35,9 +35,8 @@ export class World {
 
     this.bullets = [];   // Bullet / Missile (friendly & enemy)
     this.enemies = [];   // AirEnemy / GroundEnemy / Boss / Moai / RingBullet
-    this.particles = [];
     this.items = [];
-    this.startEnding = false; // flag
+    this.isEndingSequence = false; // Renamed from startEnding to avoid conflict with method
     this.respawnBoostT = 0;
 
     this.player = new Player(this);
@@ -579,7 +578,7 @@ export class World {
       return;
     }
     // ---- Ending flow ----
-    if (this.ending) {
+    if (this.isEndingSequence) {
       // hitstopは無視して演出優先
       this.time += dt;
       this.respawnBoostT = Math.max(0, this.respawnBoostT - dt);

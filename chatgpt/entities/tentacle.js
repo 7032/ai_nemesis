@@ -52,6 +52,15 @@ export class Tentacle extends Entity {
 
   takeLaserDamage(dmg, w) {
     if (this.dead) return;
+
+    this.laserHp -= dmg;
+    if (Math.random() < 0.3) {
+      // Feedback sound
+      w.audio.beep("noise", 200, 0.05, 0.05);
+    }
+
+    if (this.laserHp > 0) return;
+
     this.dead = true;
     w.audio.beep("noise", 100, 0.2, 0.4);
     w.onEnemyKilled({ score: 800, x: this.segments[0].x, y: this.segments[0].y, formationId: null });
