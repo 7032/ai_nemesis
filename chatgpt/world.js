@@ -848,12 +848,33 @@ export class World {
       g.fillStyle = "rgba(230,240,255,0.9)";
       g.font = "12px system-ui";
 
+      let text = slots[i];
       let showText = true;
-      if (slots[i] === "MISSILE" && pu.missileLevel >= 2) showText = false;
-      if (slots[i] === "DOUBLE" && pu.doubleLevel >= 2) showText = false;
-      if (slots[i] === "LASER" && pu.laserLevel >= 2) showText = false;
 
-      if (showText) g.fillText(slots[i], 8, 13);
+      if (text === "SPEED") {
+        if (pu.speedLevel >= 4) showText = false;
+        else text = `SPEED ${pu.speedLevel + 1}`;
+      }
+      else if (text === "MISSILE") {
+        if (pu.missileLevel >= 2) showText = false;
+        else text = `MISSILE ${pu.missileLevel + 1}`;
+      }
+      else if (text === "DOUBLE") {
+        if (pu.doubleLevel >= 2) showText = false;
+        else text = `DOUBLE ${pu.doubleLevel + 1}`;
+      }
+      else if (text === "LASER") {
+        if (pu.laserLevel >= 2) showText = false;
+        else text = `LASER ${pu.laserLevel + 1}`;
+      }
+      else if (text === "OPTION") {
+        // Assuming CONFIG.OPTION.max is 4 (standard), but check prop
+        const max = CONFIG.OPTION.max || 4;
+        if (pu.optionCount >= max) showText = false;
+        else text = `OPTION ${pu.optionCount + 1}`;
+      }
+
+      if (showText) g.fillText(text, 8, 13);
       g.restore();
     }
 

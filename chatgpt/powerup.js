@@ -9,8 +9,7 @@ export class PowerUpSystem {
     this.doubleLevel = 0;
     this.laserLevel = 0;
     this.optionCount = 0;
-    this.shield = false;
-
+    this.shieldHp = 0;
     this.overT = 0;
     this.overEndSlowT = 0;
     this.formation = 0;
@@ -58,7 +57,7 @@ export class PowerUpSystem {
         else a.beep("triangle", 240, 0.05, 0.06);
         break;
       case "SHIELD":
-        this.shield = true; a.beep("square", 880, 0.08, 0.09); break;
+        this.shieldHp = 5; a.beep("square", 880, 0.08, 0.09); break;
       case "OVERDRIVE":
         this.overT = CONFIG.POWERUP.overdriveDuration;
         a.duckBGM(0.55, 0.22);
@@ -106,6 +105,7 @@ export class PowerUpSystem {
     this.doubleLevel = Math.max(0, this.doubleLevel - 1);
     this.missileLevel = Math.max(0, this.missileLevel - 1);
     this.laserLevel = Math.max(0, this.laserLevel - 1);
-    this.shield = false;
+    this.shieldHp = 0;
+    this.shield = false; // Cleanup old prop just in case
   }
 }

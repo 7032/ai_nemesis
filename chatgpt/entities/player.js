@@ -95,14 +95,20 @@ export class Player extends Entity {
     const a = this.w.audio;
     if (this.invulnT > 0) return;
 
-    if (pu.shield) {
-      pu.shield = false;
-      this.invulnT = CONFIG.PLAYER.invulnOnShieldBreak;
+    if (pu.shieldHp > 0) {
+      pu.shieldHp--;
+      this.invulnT = 1.0;
       this.shieldFlashT = 0.3;
-      this.w.camera.shake(10, 0.2);
-      a.noiseBurst(0.10, 0.20);
-      a.beep("sawtooth", 160, 0.12, 0.12);
-      for (let i = 0; i < 18; i++) {
+      this.w.camera.shake(6, 0.15);
+
+      if (pu.shieldHp === 0) {
+        a.noiseBurst(0.10, 0.20);
+        a.beep("sawtooth", 160, 0.12, 0.12); // Break
+      } else {
+        a.beep("square", 880, 0.06, 0.1); // Hit
+      }
+
+      for (let i = 0; i < 8; i++) {
         this.w.spawnSpark(this.x, this.y, 0.35);
       }
       return;
@@ -457,13 +463,21 @@ export class Player extends Entity {
     g.save();
     g.translate(this.x, this.y);
 
-    if (pu.shield || this.shieldFlashT > 0) {
-      const a = pu.shield ? 0.35 : this.shieldFlashT / 0.3;
+    if (pu.shieldHp > 0 || this.shieldFlashT > 0) {
+      const a = (pu.shieldHp > 0) ? 0.35 : (this.shieldFlashT / 0.3);
       g.save();
       g.globalAlpha = a;
-      g.strokeStyle = "rgba(140,240,255,1)";
+
+      // Color based on HP (5->1)
+      let col = "rgba(140,240,255,1)"; // 5: Blue
+      if (pu.shieldHp === 4) col = "rgba(140,255,220,1)"; // 4: Cyan
+      if (pu.shieldHp === 3) col = "rgba(180,255,140,1)"; // 3: Green
+      if (pu.shieldHp === 2) col = "rgba(255,220,100,1)"; // 2: Yellow
+      if (pu.shieldHp <= 1) col = "rgba(255,80,80,1)";    // 1: Red
+
+      g.strokeStyle = col;
       g.lineWidth = 3;
-      g.shadowColor = "rgba(140,240,255,.8)";
+      g.shadowColor = col;
       g.shadowBlur = 18;
       g.beginPath(); g.ellipse(0, 0, 22, 16, 0, 0, TAU); g.stroke();
       g.restore();
