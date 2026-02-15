@@ -77,13 +77,15 @@ export class Tentacle extends Entity {
       const seg = this.segments[i];
       if (seg.dead) continue;
 
-      // Check collision with Laser Rect
+      // Check collision with Laser Rect (Relaxed)
       const dy = Math.abs(seg.y - ly);
-      if (dy < seg.r + lr) {
-        if (seg.x + seg.r > tail && seg.x - seg.r < lx) {
+      // Add significant padding to make it easy to hit
+      if (dy < seg.r + lr + 24) {
+        // X check with padding
+        if (seg.x + seg.r + 15 > tail && seg.x - seg.r - 15 < lx) {
           // Hit
           anyHit = true;
-          seg.hp -= dmg;
+          seg.hp -= dmg * 5.0; // Massive damage multiplier against tentacles
 
           if (seg.hp <= 0) {
             seg.dead = true;
@@ -104,7 +106,7 @@ export class Tentacle extends Entity {
 
     if (anyHit) {
       this.laserHitFrames++;
-      if (this.laserHitFrames > 120) { // 1 sec at 120fps
+      if (this.laserHitFrames > 30) { // ~0.25 sec
         this.killAll(w);
       }
       // Feedback sound
