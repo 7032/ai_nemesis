@@ -11,6 +11,7 @@ import { StageTimeline } from "./stage.js";
 
 import { Player } from "./entities/player.js";
 import { Bullet } from "./entities/bullet.js";
+import { Laser } from "./entities/laser.js";
 import { Capsule } from "./entities/capsule.js";
 
 // enemies / objects
