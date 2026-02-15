@@ -289,11 +289,10 @@ export class World {
       }
     }
 
-    // それ以外は従来の STAGE CLEAR
     this.player.addScore(45000);
     this.audio.duckBGM(0.45, 0.35);
     this.audio.beep("sawtooth", 220, 0.22, 0.14);
-    this.camera.shake(12, 0.28);
+    // Shake removed based on user request
 
     // ボス撃破で静寂(宇宙)に戻る
     this.audio.playBGM("space");
@@ -304,7 +303,7 @@ export class World {
     // 派手な爆発音
     for (let i = 0; i < 5; i++) {
       setTimeout(() => this.audio.noiseBurst(0.4, 0.6), i * 150);
-      setTimeout(() => this.camera.shake(20, 0.4), i * 150);
+      // Shake removed
     }
 
     // 大量の爆発エフェクト
@@ -569,6 +568,7 @@ export class World {
     }
 
     if (this.gameOver) {
+      this.audio.duckBGM(0, 0.5); // Stop BGM
       if (this.input.tap("KeyR")) location.reload();
       this.input.endFrame();
       return;

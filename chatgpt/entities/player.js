@@ -242,18 +242,22 @@ export class Player extends Entity {
 
     if (!pu.laser) {
       if (shotHeld) {
-        this.shotT -= dt;
-        const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
-        if (this.shotT <= 0) {
-          this.shotT += 1 / rate;
-          if (pu.double) {
-            w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
-            const a = -Math.PI / 4;
-            w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
-          } else {
-            w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
+        // Limit: 6 bullets on screen
+        const totalShots = w.bullets.filter(b => b.owner === "player" && b.kind !== "missile").length;
+        if (totalShots < 6) {
+          this.shotT -= dt;
+          const rate = pu.double ? CONFIG.DOUBLE.rate : CONFIG.SHOT.rate;
+          if (this.shotT <= 0) {
+            this.shotT += 1 / rate;
+            if (pu.double) {
+              w.spawnBullet(this.x + 18, this.y, CONFIG.DOUBLE.speed, 0, 3, 0.85 * dmgMul, true, "round");
+              const a = -Math.PI / 4;
+              w.spawnBullet(this.x + 16, this.y, Math.cos(a) * CONFIG.DOUBLE.speed, Math.sin(a) * CONFIG.DOUBLE.speed, 3, 0.85 * dmgMul, true, "needle");
+            } else {
+              w.spawnBullet(this.x + 18, this.y, CONFIG.SHOT.speed, 0, 3, 1.0 * dmgMul, true, "round");
+            }
+            w.audio.beep("square", 520, 0.02, 0.03);
           }
-          w.audio.beep("square", 520, 0.02, 0.03);
         }
       } else this.shotT = 0;
     }
@@ -302,7 +306,7 @@ export class Player extends Entity {
         for (let i = 0; i < pu.optionCount; i++) {
           const op = this.getOptionPos(i, pu);
           if (pu.laser) {
-            w.spawnBullet(op.x + 14, op.y, 720, 0, 2.5, 0.55 * dmgMul, true, "needle");
+            // Laser only (handled by applyLaserTickFrom), do not fire normal bullets
           } else if (pu.double) {
             w.spawnBullet(op.x + 14, op.y, 650, 0, 2.5, 0.65 * dmgMul, true, "round");
             const a = -Math.PI / 4;

@@ -82,8 +82,9 @@ export class AirEnemy extends Entity {
       const fireChance = early ? CONFIG.STAGE.earlyFireChanceMul : 0.65;
 
       // ★必ず定義（ここが無いと "baseMin baseMax が無い"）
-      const baseMin = early ? 3.2 : (w.stageIndex === 2 ? 2.8 : 2.2);
-      const baseMax = early ? 4.9 : (w.stageIndex === 2 ? 4.6 : 3.6);
+      // Wait ~3s as requested
+      const baseMin = early ? 3.5 : 2.8;
+      const baseMax = early ? 5.0 : 3.4;
 
       // hardLoop: fireMul < 1 => 次が早い（=頻繁）
       this._shootT = rand(baseMin, baseMax) * fireMul(w);
@@ -103,17 +104,19 @@ export class AirEnemy extends Entity {
             const len = Math.hypot(dx, dy) || 1;
             const sp = CONFIG.ENEMY.bulletSpeed * 1.2; // Faster
             w.spawnBullet(this.x - 10, this.y, (dx / len) * sp, (dy / len) * sp, 4, 1, false, "needle");
+            // Double shot (slightly offset speed)
+            w.spawnBullet(this.x - 10, this.y, (dx / len) * (sp * 0.9), (dy / len) * (sp * 0.9), 4, 1, false, "needle");
             w.audio.beep("triangle", 240, 0.05, 0.04);
           }
         } else {
-          // 動きが小さい: 多めに吐く (3-way)
+          // 動きが小さい: 多めに吐く (5-way, wait ~3s)
           const dx = p.x - this.x;
           const dy = p.y - this.y;
           const baseAng = Math.atan2(dy, dx);
           const sp = CONFIG.ENEMY.bulletSpeed * 0.9;
 
-          for (let i = -1; i <= 1; i++) {
-            const a = baseAng + i * 0.25;
+          for (let i = -2; i <= 2; i++) {
+            const a = baseAng + i * 0.20;
             w.spawnBullet(this.x - 10, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "needle");
           }
           w.audio.beep("triangle", 220, 0.05, 0.05);
@@ -331,13 +334,15 @@ export class Boss extends Entity {
     // ステージが進むほど待機時間が短くなる（難易度アップ）
     // stage1=1.0, stage2=0.85, stage3=0.7 ... min 0.4
     const waitMul = Math.max(0.4, 1.0 - (stageIndex - 1) * 0.15);
+    // Fire interval scaler
+    const rateMul = Math.max(0.5, 1.0 - (stageIndex - 1) * 0.08);
 
     return [
-      fan(3.6 * calm, 0.78 / densityMul, Math.round((7 + stageIndex) * densityMul)),
+      fan(3.6 * calm, (0.78 * rateMul) / densityMul, Math.round((7 + stageIndex) * densityMul)),
       rest((1.0 + CONFIG.BOSS.restPad) * waitMul),
 
       open(2.4 * waitMul),
-      fan(3.6 * calm, 0.78 / densityMul, Math.round((6 + stageIndex) * densityMul)),
+      fan(3.6 * calm, (0.78 * rateMul) / densityMul, Math.round((6 + stageIndex) * densityMul)),
       close(0.4 * waitMul),
       rest((1.2 + CONFIG.BOSS.restPad) * waitMul),
 
@@ -476,6 +481,11 @@ export class Boss extends Entity {
         for (let i = 0; i < shotCount; i++) {
           const angle = (i / shotCount) * Math.PI * 2 + w.time;
           w.spawnRingBullet(this.x - 20, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+          // Rage Mode (Last one): Fire normal bullets too
+          if (count <= 1) {
+            w.spawnBullet(this.x - 20, this.y, Math.cos(angle) * speed * 1.2, Math.sin(angle) * speed * 1.2, 4, 1, false, "round");
+          }
         }
       }
 
