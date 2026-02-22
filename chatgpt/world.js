@@ -17,6 +17,7 @@ import { Capsule } from "./entities/capsule.js";
 // enemies / objects
 import { GroundEnemy, Boss, AirEnemy } from "./entities/enemies.js";
 import { Moai } from "./entities/moai.js";
+import { Tentacle } from "./entities/tentacle.js";
 import { RingBullet } from "./entities/ringbullet.js";
 
 export class World {
@@ -296,7 +297,29 @@ export class World {
         return;
       }
 
-      // Phase 2→3 or final kill
+      // Phase 2→3: Last survivor retreats, heals, re-enters as final form
+      if (others.length === 1 && !this._s7phase3) {
+        this._s7phase3 = true;
+        this.player.addScore(80000);
+        this.audio.noiseBurst(0.4, 0.4);
+        this.spawnExplosion(b.x, b.y, 1.0);
+
+        const survivor = others[0];
+        survivor.state = "retreat";
+
+        setTimeout(() => {
+          survivor.hp = survivor._maxHp;
+          survivor.x = CONFIG.W + 150;
+          survivor.y = CONFIG.H / 2;
+          survivor.s7phase = 3;
+          survivor.state = "enter";
+          survivor.vx = -55;
+          this.showBanner("WARNING: FINAL FORM", 1.5);
+        }, 2000);
+        return;
+      }
+
+      // Phase 2 multi-kill (shouldn't normally happen, but safety)
       if (others.length > 0) {
         this.player.addScore(80000);
         this.audio.noiseBurst(0.4, 0.4);
@@ -310,11 +333,37 @@ export class World {
       return;
     }
 
-    // stage6 logic: Mini-Boss + Main Boss (no revive)
+    // stage6 logic: Mid-Boss → Tentacles 10s → Main Boss
     if (this.stageIndex === 6) {
       if (b.isMiniBoss) {
         this.player.addScore(10000);
         this.spawnExplosion(b.x, b.y, 1.0);
+
+        // Spawn tentacles for 10 seconds
+        const tentacles = [];
+        for (let i = 0; i < 3; i++) {
+          const t1 = new Tentacle(CONFIG.W + 80 + i * 120, 0, false, 10);
+          const t2 = new Tentacle(CONFIG.W + 80 + i * 120, 0, true, 10);
+          this.enemies.push(t1, t2);
+          tentacles.push(t1, t2);
+        }
+
+        // After 10s: clear remaining tentacles, spawn main boss
+        setTimeout(() => {
+          tentacles.forEach(t => { if (!t.dead) t.killAll(this); });
+
+          this.showBanner("CORE RAIL AI", 1.5);
+          setTimeout(() => {
+            const mb = new Boss(CONFIG.W + 260, CONFIG.H / 2, 6);
+            mb.hp *= 2;
+            mb._maxHp = mb.hp;
+            mb.radialTimer = 0;
+            mb.radialInterval = 3.0;
+            this.enemies.push(mb);
+            this.audio.playBGM("boss");
+          }, 2500);
+        }, 10000);
+
         return; // Do not trigger stage clear
       }
     }
@@ -825,6 +874,25 @@ export class World {
   drawHUD(g) {
     const pu = this.powerUp;
     const p = this.player;
+
+    // ── Stage progress bar (top of screen) ──
+    const tl = this.timeline;
+    if (tl && tl.events.length > 0) {
+      const totalTime = tl.events[tl.events.length - 1].time;
+      const progress = clamp(tl.t / totalTime, 0, 1);
+      const barW = CONFIG.W;
+      const barH = 3;
+
+      // Background
+      g.globalAlpha = 0.25;
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, barW, barH);
+
+      // Fill
+      g.globalAlpha = 0.85;
+      g.fillStyle = progress < 0.85 ? "rgba(100,200,255,1)" : "rgba(255,120,120,1)";
+      g.fillRect(0, 0, barW * progress, barH);
+    }
 
     g.save();
     g.globalAlpha = 0.92;

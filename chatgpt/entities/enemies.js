@@ -168,17 +168,33 @@ export class AirEnemy extends Entity {
 }
 
 export class GroundEnemy extends Entity {
-  constructor(x, onCeil = false) {
+  // behavior: "scroll" (default), "ambush" (stop, burst fire, flee left)
+  // fromLeft: true to enter from the left side
+  constructor(x, onCeil = false, behavior = "scroll", fromLeft = false) {
     super();
     this.x = x;
     this.onCeil = onCeil;
-    this.vx = -CONFIG.STAGE.scrollSpeed;
     this.hp = CONFIG.GROUND.enemyHP;
     this.r = 20;
     this.score = CONFIG.GROUND.enemyScore;
     this.fireAcc = rand(0, 1.2);
     this.phase = rand(0, TAU);
     this.y = onCeil ? 18 : (CONFIG.H - 18);
+
+    this.behavior = behavior;
+    this.fromLeft = fromLeft;
+
+    if (behavior === "ambush") {
+      // Move to stop position, burst fire, then flee
+      this.vx = fromLeft ? CONFIG.STAGE.scrollSpeed * 1.5 : -CONFIG.STAGE.scrollSpeed * 1.5;
+      this.stopX = fromLeft ? rand(120, 280) : rand(CONFIG.W * 0.5, CONFIG.W * 0.75);
+      this.ambushState = "approach"; // approach → fire → flee
+      this.burstCount = 0;
+      this.burstMax = 6;
+      this.burstTimer = 0;
+    } else {
+      this.vx = fromLeft ? CONFIG.STAGE.scrollSpeed : -CONFIG.STAGE.scrollSpeed;
+    }
   }
 
   takeDamage(dmg, w) {
@@ -201,42 +217,69 @@ export class GroundEnemy extends Entity {
     }
   }
 
-  update(dt, w) {
-    this.x += this.vx * dt;
-    this.phase += dt * 2.0;
-    if (this.x < -140) this.dead = true;
+  _fireOnce(w) {
+    const p = w.player;
+    if (!p || !p.canBeHit()) return;
+    const dy = (p.y - this.y) * 0.32;
+    const vy = clamp(dy, -120, 120);
+    const vx = -200;
+    w.spawnBullet(
+      this.x - 14,
+      this.y + (this.onCeil ? 10 : -10),
+      vx, vy, 4, 1, false, "round"
+    );
+    w.audio.beep("triangle", 205, 0.05, 0.036);
+  }
 
+  update(dt, w) {
+    this.phase += dt * 2.0;
+    if (this.x < -140 || this.x > CONFIG.W + 300) this.dead = true;
+
+    // Clamp Y to terrain
     if (this.onCeil) this.y = w.terrain.ceilingAt(this.x) + 16;
     else this.y = w.terrain.floorAt(this.x) - 16;
+
+    // --- Ambush behavior: approach → stop & burst fire → flee ---
+    if (this.behavior === "ambush") {
+      if (this.ambushState === "approach") {
+        this.x += this.vx * dt;
+        const reached = this.fromLeft ? (this.x >= this.stopX) : (this.x <= this.stopX);
+        if (reached) {
+          this.x = this.stopX;
+          this.vx = 0;
+          this.ambushState = "fire";
+          this.burstCount = 0;
+          this.burstTimer = 0.3;
+        }
+      } else if (this.ambushState === "fire") {
+        this.burstTimer -= dt;
+        if (this.burstTimer <= 0) {
+          this.burstTimer = 0.15;
+          this._fireOnce(w);
+          this.burstCount++;
+          if (this.burstCount >= this.burstMax) {
+            this.ambushState = "flee";
+            this.vx = -CONFIG.STAGE.scrollSpeed * 3;
+          }
+        }
+      } else if (this.ambushState === "flee") {
+        this.x += this.vx * dt;
+      }
+      return;
+    }
+
+    // --- Normal scroll behavior ---
+    this.x += this.vx * dt;
 
     const early = (w.stageIndex === 1 && w.stageTime < CONFIG.STAGE.earlyNoFireTime);
     const rate = (early ? 0.22 : 1.0) * CONFIG.GROUND.bulletRate * (w.stageIndex === 2 ? 0.95 : 1.0);
 
-    // hardLoop: fireMul < 1 => 実質の発射頻度を上げる
     const fm = fireMul(w);
     this.fireAcc += dt * rate * (1 / fm);
 
     if (this.fireAcc >= 1.0) {
       this.fireAcc = 0;
-
-      const p = w.player;
-      if (p && p.canBeHit()) {
-        const dy = (p.y - this.y) * 0.32;
-        const vy = clamp(dy, -120, 120);
-
-        const vx = -200; // world.spawnBullet が enemyBulletMul を掛ける
-        w.spawnBullet(
-          this.x - 14,
-          this.y + (this.onCeil ? 10 : -10),
-          vx,
-          vy,
-          4,
-          1,
-          false,
-          "round"
-        );
-        w.audio.beep("triangle", 205, 0.05, 0.036);
-      }
+      this._fireOnce(w);
     }
   }
 
@@ -445,7 +488,7 @@ export class Boss extends Entity {
     this.recoil = lerp(this.recoil, this.flinchT > 0 ? 1 : 0, 1 - Math.pow(0.0001, dt));
     this.weakOpen = lerp(this.weakOpen, this.weakOpenTarget, 1 - Math.pow(0.0001, dt));
 
-    if (this.state === "enter") {
+    if (this.state === "enter" && w.stageIndex !== 7) {
       this.x += this.vx * dt;
       if (this.x < CONFIG.W - 210) {
         this.vx = 0;
@@ -471,6 +514,20 @@ export class Boss extends Entity {
         if (this.x < stopX) {
           this.vx = 0;
           this.state = "fight";
+
+          // Arriving as final form — full initialization
+          if (this.s7phase === 3 && !this.isFinalForm) {
+            this.isFinalForm = true;
+            this.chargeMode = "hover";
+            this.chargeTimer = 30.0;
+            this.fireTimer = 0.5;
+            this.s7offsetX = 0;
+            const t1 = new Tentacle(this.x, this.y - 40, true, 10);
+            const t2 = new Tentacle(this.x, this.y + 40, false, 10);
+            w.enemies.push(t1, t2);
+            this.tentacles = [t1, t2];
+            w.audio.beep("noise", 200, 0.5, 0.5);
+          }
         }
         this.y = lerp(this.y, this.homeY || CONFIG.H / 2, 1 - Math.pow(0.0001, dt));
         return;
@@ -484,7 +541,7 @@ export class Boss extends Entity {
       }
 
       // --- Phase 1: 3 bosses circling on right half ---
-      if (this.s7phase !== 2 && !this.isFinalForm) {
+      if (!this.s7phase && !this.isFinalForm) {
         const centerX = CONFIG.W * 0.72;
         const centerY = CONFIG.H / 2;
         const radius = 120;
@@ -561,26 +618,8 @@ export class Boss extends Entity {
         }
       }
 
-      // --- Initialize Final Form when last one standing ---
-      if (count === 1 && !this.isFinalForm) {
-        this.isFinalForm = true;
-        this.hp = this._maxHp;
-
-        const t1 = new Tentacle(this.x, this.y - 40, true, 10);
-        const t2 = new Tentacle(this.x, this.y + 40, false, 10);
-        w.enemies.push(t1, t2);
-        this.tentacles = [t1, t2];
-        w.audio.beep("noise", 200, 0.5, 0.5);
-      }
-
       // --- Final Form ---
       if (this.isFinalForm) {
-        // Initialize charge state
-        if (!this.chargeMode) {
-          this.chargeMode = "hover";
-          this.chargeTimer = 30.0;
-        }
-
         // --- Hover: normal attack with tentacles ---
         if (this.chargeMode === "hover") {
           // Sync tentacles
@@ -594,6 +633,7 @@ export class Boss extends Entity {
             });
           }
 
+          this.x = lerp(this.x, CONFIG.W - 200, 1 - Math.pow(0.001, dt));
           this.y = 270 + Math.sin(w.time * 2.0) * 100;
           this.chargeTimer -= dt;
 

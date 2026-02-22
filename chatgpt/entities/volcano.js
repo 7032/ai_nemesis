@@ -31,30 +31,7 @@ export class Volcano extends Entity {
   }
 
   update(dt, w) {
-    this.x -= CONFIG.STAGE.scrollSpeed * dt; // Scroll with terrain if it's part of it? 
-    // Actually Stage 4 terrain moves? Yes, standard scroll.
-    // However, usually ground enemies move with terrain scroll speed OR 
-    // are updated by world scroll. 
-    // In this engine, GroundEnemy uses `this.x -= 0;` inside update but 
-    // world moves enemies? No, `World.update` moves `this.scrollX`.
-    // Wait, `AirEnemy` moves by `vx`. `GroundEnemy`?
-    // Let's check `enemies.js` for `GroundEnemy`.
-    // `GroundEnemy` has `vx = 0` and is typically static relative to terrain?
-    // No, if `vx=0`, it stays on screen while terrain scrolls? 
-    // Actually `World` handles scrollX for terrain drawing, but entities need to move left 
-    // to match the terrain movement if they are "grounded".
-    // CONFIG.STAGE.scrollSpeed is usually used for background.
-    // Let's check `spawnGround` in `stage.js` or `GroundEnemy` implementation.
-    // `GroundEnemy` sets `this.x = x`. In `update`, does it move?
-    // Checking `GroundEnemy`... it extends `Entity`.
-    // If it doesn't move left, it will slide across the terrain.
-    // Standard logic: Ground enemies move left at scroll speed.
-    // Let's verify `Config.STAGE.scrollSpeed`.
-
-    this.x -= 60 * dt; // Assuming 60 is scroll speed. 
-    // Better: use w.scrollSpeed if available, or just hardcode for now based on AirEnemy logic?
-    // AirEnemy has `vx = -92`. 
-    // If Terrain scrolls at 60px/sec, Volcano should move at -60.
+    this.x -= CONFIG.STAGE.scrollSpeed * dt;
 
     // Clamp Y to terrain
     if (this.onCeil) {

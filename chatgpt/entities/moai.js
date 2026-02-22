@@ -1,4 +1,5 @@
 import { Entity } from "./entity.js";
+import { CONFIG } from "../config.js";
 import { RingBullet } from "./ringbullet.js";
 import { clamp } from "../utils.js";
 
@@ -26,7 +27,7 @@ export class Moai extends Entity {
   }
 
   update(dt, w) {
-    this.x -= 120 * dt;
+    this.x -= CONFIG.STAGE.scrollSpeed * dt;
 
     const ceil = w.terrain.ceilingAt(this.x);
     const floor = w.terrain.floorAt(this.x);

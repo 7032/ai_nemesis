@@ -19,6 +19,14 @@ export class Terrain {
         gapMin: 360, wobble: 0.0
       };
     }
+    if (stageIndex === 2 || stageIndex === 4) {
+      return {
+        topBase: 50, bottomBase: CONFIG.H - 50,
+        topAmp: 92, bottomAmp: 116,
+        topFreq: 0.010, bottomFreq: 0.012,
+        gapMin: 240, wobble: 0.45
+      };
+    }
     return {
       topBase: 50, bottomBase: CONFIG.H - 50,
       topAmp: 46, bottomAmp: 58,
@@ -68,16 +76,51 @@ export class Terrain {
     }
 
     const t = this.theme;
+    let topAmp = t.topAmp;
+    let bottomAmp = t.bottomAmp;
+    let wobble = t.wobble;
+
+    // Stage 7: 前半=通常, 中盤=倍, ボスエリア=ステージ1並に平坦
+    if (this.stageIndex === 7 && this.startScrollX != null) {
+      const dist = worldX - this.startScrollX;
+      const midStart = 3600;   // ~30s: 中盤開始
+      const midEnd   = 4200;   // ~35s: 倍に到達
+      const bossStart = 7200;  // ~60s: ボスエリア開始
+      const bossEnd   = 7800;  // ~65s: 平坦に到達
+
+      if (dist >= midStart && dist < midEnd) {
+        // 通常→倍への移行
+        const r = (dist - midStart) / (midEnd - midStart);
+        topAmp *= (1 + r);
+        bottomAmp *= (1 + r);
+      } else if (dist >= midEnd && dist < bossStart) {
+        // 倍の状態
+        topAmp *= 2;
+        bottomAmp *= 2;
+      } else if (dist >= bossStart && dist < bossEnd) {
+        // 倍→ステージ1レベルへ移行
+        const r = (dist - bossStart) / (bossEnd - bossStart);
+        topAmp = lerp(topAmp * 2, 8, r);
+        bottomAmp = lerp(bottomAmp * 2, 10, r);
+        wobble = lerp(t.wobble, 0, r);
+      } else if (dist >= bossEnd) {
+        // ステージ1と同じ平坦
+        topAmp = 8;
+        bottomAmp = 10;
+        wobble = 0;
+      }
+    }
+
     const nTop = this._noise1D(worldX * 0.02) * 2 - 1;
     const nBot = this._noise1D((worldX + 999) * 0.02) * 2 - 1;
 
     let top = t.topBase
-      + Math.sin(worldX * t.topFreq + 0.6) * t.topAmp
-      + nTop * t.topAmp * t.wobble;
+      + Math.sin(worldX * t.topFreq + 0.6) * topAmp
+      + nTop * topAmp * wobble;
 
     let bot = t.bottomBase
-      + Math.sin(worldX * t.bottomFreq + 2.1) * t.bottomAmp
-      + nBot * t.bottomAmp * t.wobble;
+      + Math.sin(worldX * t.bottomFreq + 2.1) * bottomAmp
+      + nBot * bottomAmp * wobble;
 
     const minGap = t.gapMin;
     if (bot - top < minGap) {

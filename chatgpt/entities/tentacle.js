@@ -154,7 +154,7 @@ export class Tentacle extends Entity {
   }
 
   update(dt, w) {
-    this.x -= 120 * dt; // Scroll with world
+    this.x -= CONFIG.STAGE.scrollSpeed * dt; // Scroll with world
 
     // Check root
     if (this.segments[0].dead) {

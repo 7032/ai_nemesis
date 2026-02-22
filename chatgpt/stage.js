@@ -175,7 +175,10 @@ export class StageTimeline {
     const spawnGround = (time, list) => {
       offsetSpawn(time, () => {
         for (const it of list) {
-          const ge = new GroundEnemy(CONFIG.W + it.x, it.onCeil);
+          const fromLeft = it.fromLeft || false;
+          const behavior = it.behavior || "scroll";
+          const startX = fromLeft ? -(it.x || 50) : CONFIG.W + (it.x || 0);
+          const ge = new GroundEnemy(startX, it.onCeil, behavior, fromLeft);
           w.enemies.push(ge);
         }
       });
@@ -315,17 +318,24 @@ export class StageTimeline {
         spawnAirWave(tBase + 1.5, 2, 200, 300, -90);
         spawnCapsule(tBase + 3.5, 220, 260);
         spawnMoai(tBase + 4.0, [{ x: 120, onCeil: false }]);
+        spawnGround(tBase + 5.5, [{ x: 180, onCeil: false }]);
         spawnMoai(tBase + 7.0, [{ x: 220, onCeil: true }]);
+        spawnGround(tBase + 8.5, [
+          { x: 140, onCeil: false },
+          { x: 300, onCeil: true },
+        ]);
         spawnMoai(tBase + 10.0, [
           { x: 140, onCeil: false },
           { x: 320, onCeil: false },
         ]);
         spawnAirWave(tBase + 12.0, 3, 160, 420, -100);
+        spawnGround(tBase + 13.5, [{ x: 200, onCeil: false, behavior: "ambush" }]);
         spawnMoai(tBase + 15.5, [
           { x: 180, onCeil: true },
           { x: 360, onCeil: false },
         ]);
         spawnAirWave(tBase + 18.5, 4, 180, 400, -105);
+        spawnGround(tBase + 19.5, [{ x: 160, onCeil: true }]);
         spawnMoai(tBase + 21.0, [
           { x: 120, onCeil: false },
           { x: 260, onCeil: true },
@@ -351,14 +361,23 @@ export class StageTimeline {
       const pattern = (tBase) => {
         spawnAirWave(tBase + 1.0, 3, 150, 200);
         spawnVolcano(tBase + 3.0, false);
+        spawnGround(tBase + 4.0, [{ x: 200, onCeil: false }]);
         spawnVolcano(tBase + 5.0, true);
+        spawnGround(tBase + 6.0, [{ x: 160, onCeil: true }]);
         spawnFormationOffset(tBase + 7.0, 8, 240, true);
+        spawnGround(tBase + 8.5, [
+          { x: 140, onCeil: false },
+          { x: 280, onCeil: false },
+        ]);
         spawnVolcano(tBase + 9.0, false);
         spawnVolcano(tBase + 10.0, false);
         spawnCapsule(tBase + 11.0, 300, 200);
+        spawnGround(tBase + 12.0, [{ x: 180, onCeil: false, behavior: "ambush" }]);
         spawnVolcano(tBase + 13.0, true);
+        spawnGround(tBase + 14.0, [{ x: 100, onCeil: false, fromLeft: true }]);
         spawnVolcano(tBase + 15.0, false);
         spawnVolcano(tBase + 17.0, true);
+        spawnGround(tBase + 17.5, [{ x: 200, onCeil: true }]);
         spawnVolcano(tBase + 18.0, false);
         spawnVolcano(tBase + 19.0, true);
       };
@@ -382,13 +401,21 @@ export class StageTimeline {
         spawnAirWave(tBase + 1.5, 3, 180, 380, -100);
         spawnCapsule(tBase + 3.5, 220, 240);
         spawnTentacle(tBase + 4.0, 100, true, 12);
+        spawnGround(tBase + 5.0, [{ x: 180, onCeil: false }]);
         spawnTentacle(tBase + 6.0, 200, false, 12);
+        spawnGround(tBase + 7.0, [{ x: 160, onCeil: true }]);
         spawnTentacle(tBase + 8.0, 150, true, 14);
         spawnFormationOffset(tBase + 10.0, 6, 240, true);
+        spawnGround(tBase + 11.0, [
+          { x: 140, onCeil: false, behavior: "ambush" },
+          { x: 300, onCeil: false },
+        ]);
         spawnTentacle(tBase + 12.0, 100, false, 12);
+        spawnGround(tBase + 13.5, [{ x: 80, onCeil: false, fromLeft: true, behavior: "ambush" }]);
         spawnTentacle(tBase + 14.0, 180, true, 16);
         spawnAirWave(tBase + 16.0, 4, 160, 420, -110);
         spawnCapsule(tBase + 17.0, 260, 280);
+        spawnGround(tBase + 18.0, [{ x: 200, onCeil: false }]);
         spawnTentacle(tBase + 18.5, 120, false, 14);
         spawnTentacle(tBase + 20.0, 220, true, 14);
       };
@@ -408,46 +435,22 @@ export class StageTimeline {
     // =====================================================
     else if (stageIndex === 6) {
       spawnAirWave(2.0, 4, 150, 430, -115);
+      spawnGround(1.0, [
+        { x: 160, onCeil: false },
+        { x: 320, onCeil: true },
+      ]);
+      spawnGround(3.0, [{ x: 100, onCeil: false, fromLeft: true, behavior: "ambush" }]);
       spawnCapsule(4.5, 260, 260);
 
-      // Mini-Boss (Weak) - Before ground section
+      // Mid-Boss — must be destroyed to proceed
       offsetSpawn(5.5, () => {
         const b = new Boss(CONFIG.W + 200, CONFIG.H / 2, 6);
-        b.hp *= 1.5; // Mid-boss
+        b.hp *= 1.5;
         b._maxHp = b.hp;
+        b.isMiniBoss = true;
         w.enemies.push(b);
       });
-
-      // Delayed Ground section
-      spawnGround(15.0, [
-        { x: 140, onCeil: false },
-        { x: 260, onCeil: true },
-        { x: 380, onCeil: false },
-      ]);
-
-      // Cleanup Mini-Boss (Self-destruct) if still alive
-      offsetSpawn(21.0, () => {
-        w.enemies.forEach(e => {
-          if (e.isBoss && !e.dead) {
-            e.hp = 0;
-            e.dead = true;
-            w.spawnExplosion(e.x, e.y, 0.8);
-            w.onBossKilled(e);
-          }
-        });
-      });
-
-      // Delayed Main Boss (x3 HP, radial barrage every 3s)
-      bossApproach(22.0, "CORE RAIL AI");
-      offsetSpawn(25.5, () => {
-        const b = new Boss(CONFIG.W + 260, CONFIG.H / 2, 6);
-        b.hp *= 2;
-        b._maxHp = b.hp;
-        b.radialTimer = 0;
-        b.radialInterval = 3.0;
-        w.enemies.push(b);
-        setTimeout(() => w.audio.playBGM("boss"), 2500);
-      });
+      // Main Boss is spawned by onBossKilled after mid-boss is destroyed
     }
 
     // =====================================================
