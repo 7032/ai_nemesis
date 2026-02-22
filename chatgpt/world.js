@@ -88,7 +88,7 @@ export class World {
       "7032",
       "",
       "PROGRAMMING",
-      "ChatGPT & Antigravity",
+      "ChatGPT, Antigravity and Claude Code",
       "",
       "ART DIRECTION",
       "ChatGPT",
@@ -266,12 +266,38 @@ export class World {
   }
 
   onBossKilled(b) {
-    // stage7 logic: Multiple bosses
+    // stage7 logic: Phase transitions
     if (this.stageIndex === 7) {
-      // Check if any other boss is alive
       const others = this.enemies.filter(e => e instanceof Boss && !e.dead && e !== b);
+
+      // Phase 1→2: First kill — remaining 2 retreat, heal, re-enter
+      if (others.length === 2 && !this._s7phase2) {
+        this._s7phase2 = true;
+        this.player.addScore(80000);
+        this.audio.noiseBurst(0.4, 0.4);
+        this.spawnExplosion(b.x, b.y, 1.0);
+
+        // Remaining bosses retreat
+        others.forEach(e => { e.state = "retreat"; });
+
+        // After retreat, heal and re-enter as phase 2
+        setTimeout(() => {
+          others.forEach((e, i) => {
+            e.hp = e._maxHp;
+            e.x = CONFIG.W + 150;
+            e.y = i === 0 ? CONFIG.H * 0.3 : CONFIG.H * 0.7;
+            e.s7phase = 2;
+            e.s7offsetX = i === 0 ? 0 : 80; // front/back stagger
+            e.state = "enter";
+            e.vx = -55;
+          });
+          this.showBanner("WARNING: DUAL CORE REBOOT", 1.5);
+        }, 2000);
+        return;
+      }
+
+      // Phase 2→3 or final kill
       if (others.length > 0) {
-        // Just explosion, no heavy fanfare yet
         this.player.addScore(80000);
         this.audio.noiseBurst(0.4, 0.4);
         this.spawnExplosion(b.x, b.y, 1.0);
@@ -284,26 +310,12 @@ export class World {
       return;
     }
 
-    // stage6 logic: Boss Rush (3 times)
+    // stage6 logic: Mini-Boss + Main Boss (no revive)
     if (this.stageIndex === 6) {
       if (b.isMiniBoss) {
         this.player.addScore(10000);
         this.spawnExplosion(b.x, b.y, 1.0);
-        return; // Do not trigger revive
-      }
-
-      this.stage6BossCount++;
-      if (this.stage6BossCount < 3) {
-        this.player.addScore(50000);
-        this.spawnExplosion(b.x, b.y, 1.0);
-        this.audio.beep("square", 880, 0.1, 0.2);
-
-        setTimeout(() => {
-          const nextBoss = new Boss(CONFIG.W + 100, CONFIG.H / 2, 6);
-          this.enemies.push(nextBoss);
-          this.showBanner(`WARNING: CORE REVIVED`, 1.5);
-        }, 1500);
-        return;
+        return; // Do not trigger stage clear
       }
     }
 
@@ -395,7 +407,6 @@ export class World {
   // -----------------------------
   advanceStage() {
     this.stageIndex += 1;
-    this.stage6BossCount = 0;
     this.stageTime = 0;
     this.scrollX = 0;
 
@@ -584,8 +595,9 @@ export class World {
           else if (e instanceof Boss) {
             let dmg = b.dmg;
             if (b instanceof Laser) {
-              // Stage 7: 20x res (0.05), Others: 5x res (0.2)
-              let mul = (this.stageIndex === 7) ? 0.05 : 0.2;
+              // Stage 7: 20x res (0.05), Stage 1-5: 10x res (0.1), Stage 6: 5x res (0.2)
+              let mul = (this.stageIndex === 7) ? 0.05
+                : (this.stageIndex <= 5) ? 0.1 : 0.2;
               if (e.isFinalForm) mul *= 0.5; // Double resistance in final form
               dmg *= mul;
             }

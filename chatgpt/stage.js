@@ -413,7 +413,7 @@ export class StageTimeline {
       // Mini-Boss (Weak) - Before ground section
       offsetSpawn(5.5, () => {
         const b = new Boss(CONFIG.W + 200, CONFIG.H / 2, 6);
-        b.hp *= 0.15; // Very weak
+        b.hp *= 1.5; // Mid-boss
         b._maxHp = b.hp;
         w.enemies.push(b);
       });
@@ -437,9 +437,17 @@ export class StageTimeline {
         });
       });
 
-      // Delayed Main Boss
+      // Delayed Main Boss (x3 HP, radial barrage every 3s)
       bossApproach(22.0, "CORE RAIL AI");
-      spawnBoss(25.5);
+      offsetSpawn(25.5, () => {
+        const b = new Boss(CONFIG.W + 260, CONFIG.H / 2, 6);
+        b.hp *= 2;
+        b._maxHp = b.hp;
+        b.radialTimer = 0;
+        b.radialInterval = 3.0;
+        w.enemies.push(b);
+        setTimeout(() => w.audio.playBGM("boss"), 2500);
+      });
     }
 
     // =====================================================
@@ -482,12 +490,13 @@ export class StageTimeline {
       const fin = duration * 3;
 
       bossApproach(fin + 2.0, "SINGULARITY CORE");
-      // Triple Boss
+      // Triple Boss — circling formation (120° apart)
       offsetSpawn(fin + 6.0, () => {
-        w.enemies.push(new Boss(CONFIG.W + 150, 100, 7));
-        w.enemies.push(new Boss(CONFIG.W + 150, 270, 7));
-        w.enemies.push(new Boss(CONFIG.W + 150, 440, 7));
-        // Note: Boss constructor has homeY logic now
+        for (let i = 0; i < 3; i++) {
+          const b = new Boss(CONFIG.W + 150, CONFIG.H / 2, 7);
+          b.movePhase = (i / 3) * Math.PI * 2; // 0°, 120°, 240°
+          w.enemies.push(b);
+        }
       });
     }
 

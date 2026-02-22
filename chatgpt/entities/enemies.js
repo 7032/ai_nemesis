@@ -305,7 +305,7 @@ export class Boss extends Entity {
 
     // stage2 slightly softer, but generally scale up hp
     let hpMul = (stageIndex === 2 ? 0.92 : 1.0) + (stageIndex - 1) * 0.15;
-    if (stageIndex === 7) hpMul *= 0.5; // Halve HP for Stage 7 (User request)
+    if (stageIndex === 7) hpMul = 2.0;
 
     this.hp = CONFIG.BOSS.hp * hpMul;
     this._maxHp = this.hp;
@@ -459,103 +459,229 @@ export class Boss extends Entity {
       return;
     }
 
-    // Stage 7 special movement (Vertical Sine) + Rage Modes
+    // Stage 7 special logic
     if (w.stageIndex === 7) {
       const bosses = w.enemies.filter(e => e.isBoss && !e.dead);
       const count = bosses.length;
 
-      // Initialize Final Form (Tentacles + Full Heal) if last one
+      // --- Entry ---
+      if (this.state === "enter") {
+        this.x += this.vx * dt;
+        const stopX = CONFIG.W - 150 - (this.s7offsetX || 0);
+        if (this.x < stopX) {
+          this.vx = 0;
+          this.state = "fight";
+        }
+        this.y = lerp(this.y, this.homeY || CONFIG.H / 2, 1 - Math.pow(0.0001, dt));
+        return;
+      }
+
+      // --- Retreat (phase transition) ---
+      if (this.state === "retreat") {
+        this.x += 300 * dt;
+        if (this.x > CONFIG.W + 200) this.x = CONFIG.W + 200; // park offscreen
+        return;
+      }
+
+      // --- Phase 1: 3 bosses circling on right half ---
+      if (this.s7phase !== 2 && !this.isFinalForm) {
+        const centerX = CONFIG.W * 0.72;
+        const centerY = CONFIG.H / 2;
+        const radius = 120;
+        const speed = 0.8;
+        const angle = w.time * speed + this.movePhase;
+        this.x = centerX + Math.cos(angle) * radius;
+        this.y = centerY + Math.sin(angle) * radius;
+
+        // Ring bullet attack every 2s
+        this.fireTimer -= dt;
+        if (this.fireTimer <= 0) {
+          this.fireTimer = 2.0;
+          const n = 10;
+          const sp = 160;
+          w.audio.beep("triangle", 600, 0.05, 0.1);
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + w.time;
+            w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+          }
+        }
+      }
+
+      // --- Phase 2: 2 bosses, independent vertical movement, staggered ---
+      if (this.s7phase === 2 && !this.isFinalForm) {
+        // Vertical sine movement at 3x stage1-5 speed (0.85*3 ≈ 2.55)
+        const amp = 180;
+        const spd = 2.55;
+        this.y = CONFIG.H / 2 + Math.sin(w.time * spd + this.movePhase) * amp;
+        this.x = CONFIG.W - 150 - (this.s7offsetX || 0);
+
+        // Barrage cycle: 30s interval, 5s burst
+        if (this.barrageTimer == null) this.barrageTimer = 0;
+        this.barrageTimer += dt;
+        const cyclePos = this.barrageTimer % 35; // 30s wait + 5s burst
+        const inBarrage = cyclePos >= 30;
+
+        if (inBarrage) {
+          // Intense 5s barrage — rapid radial bullets every 0.15s
+          if (this.barrageShotAcc == null) this.barrageShotAcc = 0;
+          this.barrageShotAcc += dt;
+          while (this.barrageShotAcc >= 0.15) {
+            this.barrageShotAcc -= 0.15;
+            const sp = 180;
+            const n = 14;
+            w.audio.beep("triangle", 300, 0.03, 0.04);
+            for (let i = 0; i < n; i++) {
+              const a = (i / n) * TAU + w.time * 2;
+              w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+            }
+          }
+        } else {
+          this.barrageShotAcc = 0;
+        }
+
+        // Normal attack: Ring bullets + radial normal bullets every 1.5s
+        this.fireTimer -= dt;
+        if (this.fireTimer <= 0) {
+          this.fireTimer = 1.5;
+          const sp = 170;
+          // Ring bullets
+          const rn = 10;
+          w.audio.beep("triangle", 600, 0.05, 0.1);
+          for (let i = 0; i < rn; i++) {
+            const a = (i / rn) * TAU + w.time;
+            w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+          }
+          // Radial normal bullets
+          const nn = 8;
+          w.audio.beep("triangle", 250, 0.05, 0.05);
+          for (let i = 0; i < nn; i++) {
+            const a = (i / nn) * TAU + w.time * -1.5;
+            w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+          }
+        }
+      }
+
+      // --- Initialize Final Form when last one standing ---
       if (count === 1 && !this.isFinalForm) {
         this.isFinalForm = true;
-        this.hp = this._maxHp; // Full Heal
+        this.hp = this._maxHp;
 
-        // Spawn Tentacles
-        const t1 = new Tentacle(this.x, this.y - 40, true, 10); // Upper
-        const t2 = new Tentacle(this.x, this.y + 40, false, 10); // Lower
+        const t1 = new Tentacle(this.x, this.y - 40, true, 10);
+        const t2 = new Tentacle(this.x, this.y + 40, false, 10);
         w.enemies.push(t1, t2);
         this.tentacles = [t1, t2];
         w.audio.beep("noise", 200, 0.5, 0.5);
       }
 
-      // Sync Tentacles
-      if (this.tentacles) {
-        this.tentacles.forEach((t, i) => {
-          if (!t.dead) {
-            t.x = this.x - 20;
-            t.y = this.y + (i === 0 ? -50 : 50);
-            t.isCeil = (i === 0);
-          }
-        });
-      }
+      // --- Final Form ---
+      if (this.isFinalForm) {
+        // Initialize charge state
+        if (!this.chargeMode) {
+          this.chargeMode = "hover";
+          this.chargeTimer = 30.0;
+        }
 
-      // Movement Logic
-      if (count === 1) {
-        // Final Form Movement: Charge
-        this.chargeTimer = (this.chargeTimer || 0) - dt;
-        if (this.chargeMode === "return") {
-          this.x += 400 * dt;
-          if (this.x > CONFIG.W - 200) {
-            this.x = CONFIG.W - 200;
-            this.chargeMode = "hover";
-            this.chargeTimer = 12.0; // Wait before next charge (Extended to 12s)
+        // --- Hover: normal attack with tentacles ---
+        if (this.chargeMode === "hover") {
+          // Sync tentacles
+          if (this.tentacles) {
+            this.tentacles.forEach((t, i) => {
+              if (!t.dead) {
+                t.x = this.x - 20;
+                t.y = this.y + (i === 0 ? -50 : 50);
+                t.isCeil = (i === 0);
+              }
+            });
           }
-          this.y = lerp(this.y, CONFIG.H / 2, 0.1);
-        } else if (this.chargeMode === "attack") {
-          this.x -= 600 * dt; // Fast charge left
-          if (this.x < 100) {
-            this.chargeMode = "return";
-          }
-        } else {
-          // Hover
+
           this.y = 270 + Math.sin(w.time * 2.0) * 100;
+          this.chargeTimer -= dt;
+
+          // Normal attack: ring + radial every 0.5s
+          this.fireTimer -= dt;
+          if (this.fireTimer <= 0) {
+            this.fireTimer = 0.5;
+            const n = 24;
+            const sp = 240;
+            w.audio.beep("triangle", 600, 0.05, 0.1);
+            for (let i = 0; i < n; i++) {
+              const a = (i / n) * TAU + w.time;
+              w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+            }
+            const rn = 16;
+            w.audio.beep("triangle", 250, 0.05, 0.05);
+            for (let i = 0; i < rn; i++) {
+              const a = (i / rn) * TAU + w.time * -2;
+              w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+            }
+          }
+
+          // Transition to retract
+          if (this.chargeTimer <= 0) {
+            this.chargeMode = "retract";
+            this.chargeTimer = 0.3;
+            // Kill tentacles (retract)
+            if (this.tentacles) {
+              this.tentacles.forEach(t => t.killAll(w));
+              this.tentacles = null;
+            }
+          }
+        }
+
+        // --- Retract: tentacles gone, no firing, brief pause ---
+        else if (this.chargeMode === "retract") {
+          this.chargeTimer -= dt;
+          if (this.chargeTimer <= 0) {
+            this.chargeMode = "shake";
+            this.chargeTimer = 1.0;
+            w.audio.beep("noise", 150, 0.3, 0.5);
+          }
+        }
+
+        // --- Shake: vibrate for 1 second ---
+        else if (this.chargeMode === "shake") {
+          this.chargeTimer -= dt;
+          // Vibrate effect
+          this.x += (Math.random() - 0.5) * 12;
+          this.y += (Math.random() - 0.5) * 8;
           if (this.chargeTimer <= 0) {
             this.chargeMode = "attack";
+            this._chargeBaseY = this.y;
             w.audio.beep("noise", 100, 0.5, 0.4);
           }
         }
-      } else {
-        // Normal/Rage1 Movement
-        if (this.state !== "enter") {
-          this.y = 270 + Math.sin(w.time * 0.6 + this.movePhase) * 230;
-        }
-      }
 
-      // Attack logic
-      this.fireTimer -= dt;
-      if (this.fireTimer <= 0 && this.state !== "enter") {
-        let shotCount = 5;
-        let interval = 2.0;
-        let speed = 180;
-
-        if (count === 2) {
-          shotCount = 10;
-          interval = 1.6;
-        } else if (count <= 1) {
-          shotCount = 24;
-          interval = 0.5; // Intense
-          speed = 240;
-        }
-
-        if (this.chargeMode === "attack") interval = 0.2; // Spam during charge
-
-        this.fireTimer = interval;
-
-        // Ring Bullets
-        if (this.chargeMode !== "attack") { // Don't fire ring during charge
-          w.audio.beep("triangle", 600, 0.05, 0.1);
-          for (let i = 0; i < shotCount; i++) {
-            const angle = (i / shotCount) * Math.PI * 2 + w.time;
-            w.spawnRingBullet(this.x - 20, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
+        // --- Attack: charge left at 600px/s ---
+        else if (this.chargeMode === "attack") {
+          this.x -= 600 * dt;
+          if (this.x < 100) {
+            this.chargeMode = "return";
           }
         }
 
-        // Rage Mode (2 or 1): Fire Radial Normal Bullets
-        if (count <= 2) {
-          const n = (count === 1) ? 16 : 12;
-          w.audio.beep("triangle", 250, 0.05, 0.05);
-          for (let i = 0; i < n; i++) {
-            const a = (i / n) * TAU + w.time * -2;
-            w.spawnBullet(this.x, this.y, Math.cos(a) * speed, Math.sin(a) * speed, 4, 1, false, "round");
+        // --- Return: go back right at half speed (300px/s) ---
+        else if (this.chargeMode === "return") {
+          this.x += 300 * dt;
+          this.y = lerp(this.y, CONFIG.H / 2, 0.05);
+          if (this.x > CONFIG.W - 200) {
+            this.x = CONFIG.W - 200;
+            this.chargeMode = "regrow";
+            this.chargeTimer = 0.5;
+          }
+        }
+
+        // --- Regrow: spawn new tentacles, return to hover ---
+        else if (this.chargeMode === "regrow") {
+          this.chargeTimer -= dt;
+          if (this.chargeTimer <= 0) {
+            const t1 = new Tentacle(this.x, this.y - 40, true, 10);
+            const t2 = new Tentacle(this.x, this.y + 40, false, 10);
+            w.enemies.push(t1, t2);
+            this.tentacles = [t1, t2];
+            w.audio.beep("noise", 200, 0.3, 0.3);
+
+            this.chargeMode = "hover";
+            this.chargeTimer = 30.0;
           }
         }
       }
@@ -563,22 +689,10 @@ export class Boss extends Entity {
       // Hit flash update
       if (this.hitFlashT > 0) this.hitFlashT -= dt;
 
-      // Entry logic
-      if (this.state === "enter") {
-        this.x += this.vx * dt;
-        if (this.x < CONFIG.W - 150) {
-          this.vx = 0;
-          this.state = "fight";
-        }
-        this.y = lerp(this.y, CONFIG.H / 2, 1 - Math.pow(0.0001, dt));
-        return;
-      }
-
       // Death check
       if (this.hp <= 0) {
         this.dead = true;
         w.onBossKilled(this);
-        // Kill attached tentacles
         if (this.tentacles) {
           this.tentacles.forEach(t => t.killAll(w));
         }
@@ -592,6 +706,15 @@ export class Boss extends Entity {
     const amp = Math.min(120, (floor - ceil) * 0.24);
     const targetY = mid + Math.sin(this.phase * 0.85) * amp;
     this.y = lerp(this.y, clamp(targetY, ceil + 70, floor - 70), 1 - Math.pow(0.001, dt));
+
+    // Periodic radial barrage (used by Stage 6 main boss)
+    if (this.radialInterval > 0 && this.state === "script") {
+      this.radialTimer = (this.radialTimer || 0) + dt;
+      if (this.radialTimer >= this.radialInterval) {
+        this.radialTimer -= this.radialInterval;
+        this._spawnRing(w, 12);
+      }
+    }
 
     if (this.state === "script") {
       if (this.scriptIndex >= this.script.length) this.scriptIndex = 0;
