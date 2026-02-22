@@ -13,7 +13,9 @@
       "Bash(find . -name \"*.html\" -o -name \"*.css\" -o -name \"*.json\" -o -name \"*.md\" | head -10 | xargs file 2>/dev/null)",
       "Bash(printf %s: :*)",
       "Bash(sed:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(gh api:*)",
+      "Bash(curl:*)"
     ]
   }
 }
