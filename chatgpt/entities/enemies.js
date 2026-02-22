@@ -4,6 +4,7 @@ import { clamp, lerp, rand } from "../utils.js";
 import { Entity } from "./entity.js";
 import { Particle } from "../particles.js";
 import { Tentacle } from "./tentacle.js";
+import { RingBullet } from "./ringbullet.js";
 
 function fireMul(w) {
   return (w && typeof w.enemyFireMul === "function") ? w.enemyFireMul() : 1.0;
@@ -17,11 +18,10 @@ export class AirEnemy extends Entity {
     super();
     this.x = x;
     this.y = y;
-    this.vx = -92;
+    this.vx = -(CONFIG.STAGE.scrollSpeed * 1.5); // 前進はスクロールの1.5倍
     this.vy = 0;
     this.r = 16;
     this.hp = hp;
-    this.score = 200;
     this.score = 200;
     this._shootT = rand(1.8, 3.4);
 
@@ -29,6 +29,10 @@ export class AirEnemy extends Entity {
     this.pattern = Math.floor(rand(0, 3));
     this.age = 0;
     this.baseY = y;
+
+    // 退却制御
+    this.retreating = false;
+    this._retreatFired = false;
   }
 
   takeDamage(dmg, w) {
@@ -52,11 +56,35 @@ export class AirEnemy extends Entity {
   }
 
   update(dt, w) {
-    this.x += this.vx * dt;
     this.age += dt;
 
+    // --- 編隊の反転判定: 左1/5に到達したら反転 ---
+    if (this.formationId && !this.retreating && this.x <= CONFIG.W * 0.2) {
+      this.retreating = true;
+      this.vx = CONFIG.STAGE.scrollSpeed * 2; // 2倍速で右へ退場
+      // 反転時に放射状弾をばら撒く
+      if (!this._retreatFired) {
+        this._retreatFired = true;
+        const n = 8;
+        const sp = CONFIG.ENEMY.bulletSpeed * 0.8;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU;
+          w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+        }
+        w.audio.beep("triangle", 300, 0.05, 0.06);
+      }
+    }
+
+    // --- 通常敵（非編隊）の退却: 画面中央付近まで進んだら反転 ---
+    if (!this.formationId && !this.retreating && this.x <= CONFIG.W * 0.35) {
+      this.retreating = true;
+      this.vx = CONFIG.STAGE.scrollSpeed * 2; // 2倍速で右へ退場
+    }
+
+    this.x += this.vx * dt;
+
     // 編隊IDがないなら独自の動き
-    if (!this.formationId) {
+    if (!this.formationId && !this.retreating) {
       if (this.pattern === 1) {
         // Sine wave
         this.y = this.baseY + Math.sin(this.age * 4) * 40;
@@ -70,7 +98,7 @@ export class AirEnemy extends Entity {
       // pattern 0 is straight (default)
     }
 
-    if (this.x < -140) this.dead = true;
+    if (this.x < -140 || this.x > CONFIG.W + 200) this.dead = true;
 
     const ceil = w.terrain.ceilingAt(this.x);
     const floor = w.terrain.floorAt(this.x);
@@ -268,18 +296,53 @@ export class GroundEnemy extends Entity {
       return;
     }
 
-    // --- Normal scroll behavior ---
-    this.x += this.vx * dt;
+    // --- Normal scroll behavior with stop-fire-flee ---
+    // scrollState: undefined/"advance" → "fire" → "flee"
+    if (!this._scrollState) this._scrollState = "advance";
 
-    const early = (w.stageIndex === 1 && w.stageTime < CONFIG.STAGE.earlyNoFireTime);
-    const rate = (early ? 0.22 : 1.0) * CONFIG.GROUND.bulletRate * (w.stageIndex === 2 ? 0.95 : 1.0);
-
-    const fm = fireMul(w);
-    this.fireAcc += dt * rate * (1 / fm);
-
-    if (this.fireAcc >= 1.0) {
-      this.fireAcc = 0;
-      this._fireOnce(w);
+    if (this._scrollState === "advance") {
+      this.x += this.vx * dt;
+      // 右1/3 (画面の2/3地点) まで進んだら停止して射撃
+      if (this.x <= CONFIG.W * (2 / 3)) {
+        this._scrollState = "fire";
+        this.vx = 0;
+        this._burstCount = 0;
+        this._burstMax = 6;
+        this._burstTimer = 0.3;
+      } else {
+        // 到達前も通常射撃
+        const early = (w.stageIndex === 1 && w.stageTime < CONFIG.STAGE.earlyNoFireTime);
+        const rate = (early ? 0.22 : 1.0) * CONFIG.GROUND.bulletRate * (w.stageIndex === 2 ? 0.95 : 1.0);
+        const fm = fireMul(w);
+        this.fireAcc += dt * rate * (1 / fm);
+        if (this.fireAcc >= 1.0) {
+          this.fireAcc = 0;
+          this._fireOnce(w);
+        }
+      }
+    } else if (this._scrollState === "fire") {
+      this._burstTimer -= dt;
+      if (this._burstTimer <= 0) {
+        this._burstTimer = 0.18;
+        // 放射状にばら撒く
+        const sp = 180;
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU;
+          w.spawnBullet(this.x, this.y + (this.onCeil ? 10 : -10),
+            Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+        }
+        w.audio.beep("triangle", 205, 0.05, 0.036);
+        this._burstCount++;
+        if (this._burstCount >= this._burstMax) {
+          this._scrollState = "flee";
+          // ランダムに左か右に逃げる
+          const fleeDir = (Math.random() < 0.5) ? -1 : 1;
+          this.vx = CONFIG.STAGE.scrollSpeed * 2 * fleeDir;
+        }
+      }
+    } else if (this._scrollState === "flee") {
+      this.x += this.vx * dt;
     }
   }
 
@@ -354,6 +417,10 @@ export class Boss extends Entity {
     this._maxHp = this.hp;
     this.score = 22000;
     this.fireTimer = 2.0; // Initialize for Stage 7 logic
+    this.stageIndex = stageIndex;
+
+    // Stage 3+: RingBullet攻撃
+    this.ringBulletTimer = rand(1.5, 3.0);
 
     this.phase = 0;
     this.hitFlashT = 0;
@@ -615,6 +682,14 @@ export class Boss extends Entity {
             const a = (i / nn) * TAU + w.time * -1.5;
             w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
           }
+          // Phase 2+: 放射状RingBullet (8発)
+          const ringN = 8;
+          const ringSp = 150;
+          for (let i = 0; i < ringN; i++) {
+            const a = (i / ringN) * TAU + w.time * 0.7;
+            w.enemies.push(new RingBullet(this.x, this.y, Math.cos(a) * ringSp, Math.sin(a) * ringSp));
+          }
+          w.audio.beep("triangle", 220, 0.05, 0.05);
         }
       }
 
@@ -653,6 +728,13 @@ export class Boss extends Entity {
             for (let i = 0; i < rn; i++) {
               const a = (i / rn) * TAU + w.time * -2;
               w.spawnBullet(this.x, this.y, Math.cos(a) * sp, Math.sin(a) * sp, 4, 1, false, "round");
+            }
+            // Final Form: 放射状RingBullet (10発)
+            const ringN = 10;
+            const ringSp = 180;
+            for (let i = 0; i < ringN; i++) {
+              const a = (i / ringN) * TAU + w.time * 1.3;
+              w.enemies.push(new RingBullet(this.x, this.y, Math.cos(a) * ringSp, Math.sin(a) * ringSp));
             }
           }
 
@@ -786,6 +868,44 @@ export class Boss extends Entity {
         if (seg._acc != null) seg._acc = 0;
         this.scriptT = 0;
         this.scriptIndex++;
+      }
+    }
+
+    // --- Stage 3+: RingBullet攻撃 ---
+    if (this.stageIndex >= 3 && this.state === "script") {
+      this.ringBulletTimer -= dt;
+      if (this.ringBulletTimer <= 0) {
+        if (this.stageIndex >= 6) {
+          // Stage 6+: モアイのように常時バースト (3連射, 間隔0.3s, 2.0s休憩)
+          if (!this._ringBurstCount) this._ringBurstCount = 0;
+          this._ringBurstCount++;
+          const p = w.player;
+          if (p && p.canBeHit()) {
+            const dx = p.x - this.x;
+            const dy = p.y - this.y;
+            const len = Math.hypot(dx, dy) || 1;
+            const vx = (dx / len) * 200;
+            const vy = (dy / len) * 200;
+            w.enemies.push(new RingBullet(this.x - 86, this.y, vx, vy));
+            w.audio.beep("triangle", 220, 0.05, 0.05);
+          }
+          if (this._ringBurstCount >= 3) {
+            this._ringBurstCount = 0;
+            this.ringBulletTimer = 2.0;
+          } else {
+            this.ringBulletTimer = 0.3;
+          }
+        } else {
+          // Stage 3-5: 放射状にRingBullet (6発, 3.5s間隔)
+          const n = 6;
+          const sp = 160;
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + this.phase;
+            w.enemies.push(new RingBullet(this.x - 86, this.y, Math.cos(a) * sp, Math.sin(a) * sp));
+          }
+          w.audio.beep("triangle", 220, 0.05, 0.06);
+          this.ringBulletTimer = 3.5;
+        }
       }
     }
 

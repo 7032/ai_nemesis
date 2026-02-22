@@ -269,7 +269,7 @@ export class World {
   onBossKilled(b) {
     // stage7 logic: Phase transitions
     if (this.stageIndex === 7) {
-      const others = this.enemies.filter(e => e instanceof Boss && !e.dead && e !== b);
+      const others = this.enemies.filter(e => e.isBoss && !e.dead && e !== b);
 
       // Phase 1→2: First kill — remaining 2 retreat, heal, re-enter
       if (others.length === 2 && !this._s7phase2) {
@@ -652,7 +652,7 @@ export class World {
             }
             e.takeDamage(dmg, this, b.x, b.y);
           }
-          else e.takeDamage?.(b.dmg, this, b.x, b.y);
+          else e.takeDamage?.(b.dmg, this, b.x, b.y, b.kind);
 
           if (!b.penetrate) break;
         }
@@ -676,7 +676,7 @@ export class World {
     }
 
     if (this.gameOver) {
-      this.audio.duckBGM(0, 0.5); // Stop BGM
+      this.audio.stopBGM();
       if (this.input.tap("KeyR")) location.reload();
       this.input.endFrame();
       return;

@@ -114,7 +114,7 @@ export class Tentacle extends Entity {
     }
   }
 
-  takeDamage(dmg, w, hitX, hitY) {
+  takeDamage(dmg, w, hitX, hitY, bulletKind) {
     // Find closest segment to hit
     let bestDist = 999;
     let bestIdx = -1;
@@ -131,7 +131,9 @@ export class Tentacle extends Entity {
 
     if (bestIdx !== -1) {
       const seg = this.segments[bestIdx];
-      seg.hp -= dmg;
+      // ミサイルに対する耐久力3倍（ダメージ1/3）
+      const effectiveDmg = (bulletKind === "missile") ? dmg / 3 : dmg;
+      seg.hp -= effectiveDmg;
       w.audio.beep("sawtooth", 400 + bestIdx * 50, 0.05, 0.05);
 
       if (seg.hp <= 0) {

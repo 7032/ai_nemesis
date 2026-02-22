@@ -348,6 +348,18 @@ export class AudioBus {
     src.start(time);
   }
 
+  stopBGM() {
+    if (!this.ctx) return;
+    this._isPlaying = false;
+    this._isWarning = false;
+    this._currentSong = null;
+    this._sceneName = null;
+    const t = this.now();
+    this.bgmGain.gain.cancelScheduledValues(t);
+    this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, t);
+    this.bgmGain.gain.linearRampToValueAtTime(0, t + 0.3);
+  }
+
   // ----------------------------------------------------------------
   // SE
   // ----------------------------------------------------------------
