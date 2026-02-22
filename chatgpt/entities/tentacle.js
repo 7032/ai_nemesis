@@ -131,8 +131,13 @@ export class Tentacle extends Entity {
 
     if (bestIdx !== -1) {
       const seg = this.segments[bestIdx];
-      // ミサイルに対する耐久力3倍（ダメージ1/3）
-      const effectiveDmg = (bulletKind === "missile") ? dmg / 3 : dmg;
+      // 耐久力計算: 根っこ(idx=0)は5倍、ミサイルは全体3倍 + 根っこにはさらに2倍(計30倍)
+      let effectiveDmg = dmg;
+      if (bestIdx === 0) effectiveDmg /= 5; // 根っこは耐久5倍
+      if (bulletKind === "missile") {
+        effectiveDmg /= 3; // ミサイル耐久3倍
+        if (bestIdx === 0) effectiveDmg /= 2; // 根っこはミサイルにさらに2倍耐性
+      }
       seg.hp -= effectiveDmg;
       w.audio.beep("sawtooth", 400 + bestIdx * 50, 0.05, 0.05);
 
@@ -156,7 +161,17 @@ export class Tentacle extends Entity {
   }
 
   update(dt, w) {
-    this.x -= CONFIG.STAGE.scrollSpeed * dt; // Scroll with world
+    // 親エンティティがある場合はその位置に追従（ボス本体から生える触手）
+    if (this.parent) {
+      if (this.parent.dead) {
+        this.killAll(w);
+        return;
+      }
+      this.x = this.parent.x + (this.parentOffsetX || 0);
+      this.y = this.parent.y + (this.parentOffsetY || 0);
+    } else {
+      this.x -= CONFIG.STAGE.scrollSpeed * dt; // Scroll with world
+    }
 
     // Check root
     if (this.segments[0].dead) {
@@ -167,11 +182,11 @@ export class Tentacle extends Entity {
     // Update segment positions (FK)
     let cx = this.x;
     let cy = this.y;
-    // Base position follows terrain or scroll? 
-    // Usually fixed to terrain. 
-    // Recalculate base y based on terrain?
-    if (this.isCeil) cy = w.terrain.ceilingAt(this.x);
-    else cy = w.terrain.floorAt(this.x);
+    // 親がなければ地形に固定
+    if (!this.parent) {
+      if (this.isCeil) cy = w.terrain.ceilingAt(this.x);
+      else cy = w.terrain.floorAt(this.x);
+    }
 
     this.segments[0].x = cx;
     this.segments[0].y = cy;
@@ -227,7 +242,7 @@ export class Tentacle extends Entity {
       }
     }
 
-    if (this.x < -100) this.dead = true;
+    if (!this.parent && this.x < -100) this.dead = true;
   }
 
   draw(g) {

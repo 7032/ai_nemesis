@@ -590,7 +590,11 @@ export class Boss extends Entity {
             this.fireTimer = 0.5;
             this.s7offsetX = 0;
             const t1 = new Tentacle(this.x, this.y - 40, true, 10);
+            t1.parent = this; t1.parentOffsetX = -20; t1.parentOffsetY = -50;
+            t1.baseAngle = -Math.PI * 0.7; // 斜め上に伸びる
             const t2 = new Tentacle(this.x, this.y + 40, false, 10);
+            t2.parent = this; t2.parentOffsetX = -20; t2.parentOffsetY = 50;
+            t2.baseAngle = Math.PI * 0.7; // 斜め下に伸びる
             w.enemies.push(t1, t2);
             this.tentacles = [t1, t2];
             w.audio.beep("noise", 200, 0.5, 0.5);
@@ -697,16 +701,7 @@ export class Boss extends Entity {
       if (this.isFinalForm) {
         // --- Hover: normal attack with tentacles ---
         if (this.chargeMode === "hover") {
-          // Sync tentacles
-          if (this.tentacles) {
-            this.tentacles.forEach((t, i) => {
-              if (!t.dead) {
-                t.x = this.x - 20;
-                t.y = this.y + (i === 0 ? -50 : 50);
-                t.isCeil = (i === 0);
-              }
-            });
-          }
+          // 触手はparentで自動追従するため手動同期不要
 
           this.x = lerp(this.x, CONFIG.W - 200, 1 - Math.pow(0.001, dt));
           this.y = 270 + Math.sin(w.time * 2.0) * 100;
@@ -797,7 +792,11 @@ export class Boss extends Entity {
           this.chargeTimer -= dt;
           if (this.chargeTimer <= 0) {
             const t1 = new Tentacle(this.x, this.y - 40, true, 10);
+            t1.parent = this; t1.parentOffsetX = -20; t1.parentOffsetY = -50;
+            t1.baseAngle = -Math.PI * 0.7;
             const t2 = new Tentacle(this.x, this.y + 40, false, 10);
+            t2.parent = this; t2.parentOffsetX = -20; t2.parentOffsetY = 50;
+            t2.baseAngle = Math.PI * 0.7;
             w.enemies.push(t1, t2);
             this.tentacles = [t1, t2];
             w.audio.beep("noise", 200, 0.3, 0.3);
