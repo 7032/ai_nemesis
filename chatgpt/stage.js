@@ -206,6 +206,8 @@ export class StageTimeline {
       offsetSpawn(time, () => {
         w.showBanner(label, 2.0);
         w.audio.playBGM("warning");
+        // ボス戦に向けて地形を平坦化
+        w.terrain.setAmplitude(0.05, 0.8);
       });
     };
 
@@ -442,6 +444,13 @@ export class StageTimeline {
       spawnGround(3.0, [{ x: 100, onCeil: false, fromLeft: true, behavior: "ambush" }]);
       spawnCapsule(4.5, 260, 260);
 
+      // Mid-Boss接近: 地形を平坦化
+      offsetSpawn(4.0, () => {
+        w.terrain.setAmplitude(0.05, 0.8);
+        w.showBanner("MID-BOSS APPROACH", 1.5);
+        w.audio.playBGM("warning");
+      });
+
       // Mid-Boss — must be destroyed to proceed
       offsetSpawn(5.5, () => {
         const b = new Boss(CONFIG.W + 200, CONFIG.H / 2, 6);
@@ -489,6 +498,11 @@ export class StageTimeline {
 
       // Loop 3 times
       for (let i = 0; i < 3; i++) pattern(i * duration);
+
+      // Stage 7中盤: 地形を激化
+      offsetSpawn(duration * 1.5, () => {
+        w.terrain.setAmplitude(2.0, 0.6);
+      });
 
       const fin = duration * 3;
 

@@ -98,7 +98,11 @@ export class AirEnemy extends Entity {
       // pattern 0 is straight (default)
     }
 
-    if (this.x < -140 || this.x > CONFIG.W + 200) this.dead = true;
+    if (this.x < -140 || this.x > CONFIG.W + 200) {
+      this.dead = true;
+      // 編隊の退却退場も撃破扱い（殲滅カプセルのため）
+      if (this.formationId) w.onEnemyKilled(this);
+    }
 
     const ceil = w.terrain.ceilingAt(this.x);
     const floor = w.terrain.floorAt(this.x);

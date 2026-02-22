@@ -8,6 +8,11 @@ export class Terrain {
     this.scrollX = 0;
     this._cache = new Map();
     this.theme = this._makeTheme(stageIndex);
+
+    // 動的地形制御: ampMul で振幅をスケール (1.0=通常, 0=平坦, 2.0=激しい)
+    this.ampMul = 1.0;
+    this._ampTarget = 1.0;
+    this._ampSpeed = 1.5; // 秒あたりの変化速度
   }
 
   _makeTheme(stageIndex) {
@@ -40,11 +45,31 @@ export class Terrain {
     this._cache.clear();
     this.seed = Math.floor(rand(1, 999999));
     this.theme = this._makeTheme(stageIndex);
+    this.ampMul = 1.0;
+    this._ampTarget = 1.0;
   }
 
-  updateScroll(scrollX) {
+  // 地形振幅を動的に変更 (0=平坦, 1=通常, 2=激しい)
+  setAmplitude(target, speed = 1.5) {
+    this._ampTarget = target;
+    this._ampSpeed = speed;
+  }
+
+  updateScroll(scrollX, dt) {
     this.scrollX = scrollX;
     if (this._cache.size > 1400) this._cache.clear();
+
+    // ampMulをターゲットに向けてスムーズに変化
+    if (dt && this.ampMul !== this._ampTarget) {
+      const diff = this._ampTarget - this.ampMul;
+      const step = this._ampSpeed * (dt || 1/60);
+      if (Math.abs(diff) < step) {
+        this.ampMul = this._ampTarget;
+      } else {
+        this.ampMul += Math.sign(diff) * step;
+      }
+      this._cache.clear(); // 地形が変化中はキャッシュクリア
+    }
   }
 
   _hash(n) {
@@ -76,50 +101,30 @@ export class Terrain {
     }
 
     const t = this.theme;
-    let topAmp = t.topAmp;
-    let bottomAmp = t.bottomAmp;
-    let wobble = t.wobble;
-
-    // Stage 7: 前半=通常, 中盤=倍, ボスエリア=ステージ1並に平坦
-    if (this.stageIndex === 7 && this.startScrollX != null) {
-      const dist = worldX - this.startScrollX;
-      const midStart = 3600;   // ~30s: 中盤開始
-      const midEnd   = 4200;   // ~35s: 倍に到達
-      const bossStart = 7200;  // ~60s: ボスエリア開始
-      const bossEnd   = 7800;  // ~65s: 平坦に到達
-
-      if (dist >= midStart && dist < midEnd) {
-        // 通常→倍への移行
-        const r = (dist - midStart) / (midEnd - midStart);
-        topAmp *= (1 + r);
-        bottomAmp *= (1 + r);
-      } else if (dist >= midEnd && dist < bossStart) {
-        // 倍の状態
-        topAmp *= 2;
-        bottomAmp *= 2;
-      } else if (dist >= bossStart && dist < bossEnd) {
-        // 倍→ステージ1レベルへ移行
-        const r = (dist - bossStart) / (bossEnd - bossStart);
-        topAmp = lerp(topAmp * 2, 8, r);
-        bottomAmp = lerp(bottomAmp * 2, 10, r);
-        wobble = lerp(t.wobble, 0, r);
-      } else if (dist >= bossEnd) {
-        // ステージ1と同じ平坦
-        topAmp = 8;
-        bottomAmp = 10;
-        wobble = 0;
-      }
-    }
+    // ampMul で振幅をスケール (0=平坦, 1=通常, 2=激しい)
+    const am = this.ampMul;
+    let topAmp = t.topAmp * am;
+    let bottomAmp = t.bottomAmp * am;
+    let wobble = t.wobble * Math.min(am, 1.0); // 平坦時はノイズも減衰
 
     const nTop = this._noise1D(worldX * 0.02) * 2 - 1;
     const nBot = this._noise1D((worldX + 999) * 0.02) * 2 - 1;
 
+    // Stage 3, 7: 矩形波 (sign of sin)。それ以外: 正弦波
+    const useSquare = (this.stageIndex === 3 || this.stageIndex === 7);
+    const waveTop = useSquare
+      ? Math.sign(Math.sin(worldX * t.topFreq + 0.6))
+      : Math.sin(worldX * t.topFreq + 0.6);
+    const waveBot = useSquare
+      ? Math.sign(Math.sin(worldX * t.bottomFreq + 2.1))
+      : Math.sin(worldX * t.bottomFreq + 2.1);
+
     let top = t.topBase
-      + Math.sin(worldX * t.topFreq + 0.6) * topAmp
+      + waveTop * topAmp
       + nTop * topAmp * wobble;
 
     let bot = t.bottomBase
-      + Math.sin(worldX * t.bottomFreq + 2.1) * bottomAmp
+      + waveBot * bottomAmp
       + nBot * bottomAmp * wobble;
 
     const minGap = t.gapMin;

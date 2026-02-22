@@ -339,6 +339,9 @@ export class World {
         this.player.addScore(10000);
         this.spawnExplosion(b.x, b.y, 1.0);
 
+        // 中ボス撃破 → 地形をStage4並に激化
+        this.terrain.setAmplitude(2.0, 1.0);
+
         // Spawn tentacles for 10 seconds
         const tentacles = [];
         for (let i = 0; i < 3; i++) {
@@ -352,6 +355,8 @@ export class World {
         setTimeout(() => {
           tentacles.forEach(t => { if (!t.dead) t.killAll(this); });
 
+          // ラスボス前に地形を再び平坦化
+          this.terrain.setAmplitude(0.05, 0.8);
           this.showBanner("CORE RAIL AI", 1.5);
           setTimeout(() => {
             const mb = new Boss(CONFIG.W + 260, CONFIG.H / 2, 6);
@@ -754,7 +759,7 @@ export class World {
     this.stageTime += dt;
     this.scrollX += CONFIG.STAGE.scrollSpeed * dt;
 
-    this.terrain.updateScroll(this.scrollX);
+    this.terrain.updateScroll(this.scrollX, dt);
 
     if (!this.stageClear && this.stageIndex <= 7) this.timeline.update(dt);
 
